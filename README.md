@@ -1,135 +1,136 @@
-# Smarthome
+# Erweitertes Proxmox Local Monitoring Script
 
-## Proxmox Monitoring Script
+Ein umfassendes Bash-Script zur lokalen Überwachung eines Proxmox-Hosts mit Telegram-Benachrichtigungen. Das Script überwacht verschiedene System- und Hardwaremetriken und sendet Benachrichtigungen bei Überschreitung definierter Schwellwerte.
 
-Ein Bash-Script zum Monitoring von Proxmox-Hosts mit Telegram-Benachrichtigungen. Das Script überwacht CPU-, RAM- und Speicherauslastung und sendet Benachrichtigungen über einen Telegram-Bot, wenn definierte Schwellwerte überschritten werden.
+## Features
 
-### Features
+- Überwachung von System-Ressourcen (CPU, RAM, Speicherplatz)
+- SMART-Status-Überwachung der Festplatten
+- CPU-Temperatur-Monitoring
+- ZFS-Pool-Status und Scrub-Alter-Überprüfung
+- Backup-Status-Überwachung
+- Inode-Nutzung-Überwachung
+- Proxmox-Service-Status-Überwachung
+- Telegram-Benachrichtigungen bei Problemen
+- Vermeidung von Benachrichtigungs-Spam durch Status-Tracking
+- Automatische Log-Rotation
 
-- Überwachung mehrerer Proxmox-Nodes
-- Monitoring von CPU-, RAM- und Speicherauslastung
-- Konfigurierbare Schwellwerte
-- Telegram-Benachrichtigungen bei Überschreitung der Schwellwerte
-- Detailliertes Logging
-- Automatische Wiederverbindung bei Verbindungsabbrüchen
+## Voraussetzungen
 
-### Voraussetzungen
-
-- Bash
+- Proxmox VE Host
+- smartmontools
 - curl
-- jq (JSON processor)
-- bc (Basic Calculator)
-- Zugang zu einem Proxmox-Host
 - Telegram-Bot-Token und Chat-ID
 
-### Installation
+## Installation
 
-1. Klonen Sie das Repository:
+1. Installieren Sie die benötigten Abhängigkeiten:
 ```bash
-git clone https://github.com/yourusername/proxmox-monitoring.git
-cd proxmox-monitoring
+apt-get update
+apt-get install smartmontools curl
 ```
 
-2. Machen Sie das Script ausführbar:
+2. Kopieren Sie das Script auf Ihren Proxmox-Host:
 ```bash
-chmod +x proxmox_monitor.sh
+cp proxmox_local_monitor.sh /usr/local/bin/
+chmod +x /usr/local/bin/proxmox_local_monitor.sh
 ```
 
-3. Installieren Sie die benötigten Abhängigkeiten:
+3. Passen Sie die Konfigurationsvariablen am Anfang des Scripts an:
 ```bash
-## Für Debian/Ubuntu
-sudo apt-get update
-sudo apt-get install curl jq bc
-
-## Für CentOS/RHEL
-sudo yum install curl jq bc
+nano /usr/local/bin/proxmox_local_monitor.sh
 ```
 
-### Konfiguration
-
-1. Öffnen Sie das Script in einem Texteditor und passen Sie die Konfigurationsvariablen an:
+4. Richten Sie einen Cron-Job ein:
 ```bash
-PROXMOX_HOST="your-proxmox-host"
-PROXMOX_USER="root@pam"
-PROXMOX_PASSWORD="your-password"
-TELEGRAM_BOT_TOKEN="your-bot-token"
-TELEGRAM_CHAT_ID="your-chat-id"
-
-## Schwellwerte
-CPU_THRESHOLD=80    # in Prozent
-RAM_THRESHOLD=80    # in Prozent
-STORAGE_THRESHOLD=80 # in Prozent
-CHECK_INTERVAL=300  # in Sekunden
+crontab -e
+```
+Fügen Sie folgende Zeile hinzu für stündliche Ausführung:
+```
+0 * * * * /usr/local/bin/proxmox_local_monitor.sh
 ```
 
-2. Einrichtung des Telegram-Bots:
-   - Erstellen Sie einen neuen Bot über den [@BotFather](https://t.me/botfather)
-   - Kopieren Sie den Bot-Token
-   - Starten Sie eine Konversation mit Ihrem Bot
-   - Rufen Sie https://api.telegram.org/bot<IHR_BOT_TOKEN>/getUpdates auf
-   - Kopieren Sie die Chat-ID aus der Antwort
+## Konfiguration
 
-### Verwendung
-
-Starten Sie das Script:
+### Schwellwerte
+Passen Sie die Schwellwerte am Anfang des Scripts nach Ihren Bedürfnissen an:
 ```bash
-./proxmox_monitor.sh
+# Schwellwerte
+CPU_THRESHOLD=80        # in Prozent
+RAM_THRESHOLD=80        # in Prozent
+STORAGE_THRESHOLD=80    # in Prozent
+INODE_THRESHOLD=80      # in Prozent
+TEMP_THRESHOLD=65       # in Grad Celsius
+SMART_THRESHOLD=10      # Anzahl reallocated sectors
+ZFS_SCRUB_DAYS=30      # Maximales Alter des letzten Scrubs
+BACKUP_AGE_HOURS=26    # Maximales Alter des letzten Backups
 ```
 
-Für den Produktiveinsatz empfiehlt sich das Ausführen als Systemd-Service:
-
-1. Erstellen Sie eine Service-Datei:
-```bash
-sudo nano /etc/systemd/system/proxmox-monitor.service
-```
-
-2. Fügen Sie folgenden Inhalt ein:
-```ini
-[Unit]
-Description=Proxmox Monitoring Service
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=/pfad/zu/proxmox_monitor.sh
-Restart=always
-User=root
-
-[Install]
-WantedBy=multi-user.target
-```
-
-3. Aktivieren und starten Sie den Service:
-```bash
-sudo systemctl enable proxmox-monitor
-sudo systemctl start proxmox-monitor
-```
+### Telegram-Bot Einrichtung
+1. Erstellen Sie einen neuen Bot über den [@BotFather](https://t.me/botfather)
+2. Kopieren Sie den Bot-Token
+3. Starten Sie eine Konversation mit Ihrem Bot
+4. Rufen Sie https://api.telegram.org/bot<IHR_BOT_TOKEN>/getUpdates auf
+5. Kopieren Sie die Chat-ID aus der Antwort
 
 ### Logging
+Die Logs werden in `/var/log/proxmox_monitor.log` gespeichert und automatisch nach 7 Tagen gelöscht.
 
-Das Script protokolliert alle Aktivitäten mit Zeitstempel. Die Logs werden standardmäßig in der Konsole ausgegeben und können bei Bedarf in eine Datei umgeleitet werden:
+## Überwachte Metriken
 
+### System-Ressourcen
+- CPU-Auslastung
+- RAM-Auslastung
+- Speicherplatz-Nutzung
+- Inode-Nutzung
+- CPU-Temperatur
+
+### Hardware
+- SMART-Status aller Festplatten
+- Reallocated Sectors Count
+- Festplatten-Temperatur (falls verfügbar)
+
+### ZFS (falls vorhanden)
+- Pool-Status
+- Scrub-Alter
+- Fehler und Warnungen
+
+### Backups
+- Alter des letzten Backups (PBS)
+- Backup-Fehler
+
+### Dienste
+- pve-cluster
+- pvedaemon
+- pveproxy
+- pvestatd
+- pvescheduler
+
+## Fehlerbehebung
+
+### Häufige Probleme
+
+1. Script wird nicht ausgeführt:
+   - Überprüfen Sie die Berechtigungen: `chmod +x /usr/local/bin/proxmox_local_monitor.sh`
+   - Überprüfen Sie den Cron-Job: `grep proxmox_local_monitor /var/log/syslog`
+
+2. Keine Telegram-Nachrichten:
+   - Überprüfen Sie Bot-Token und Chat-ID
+   - Testen Sie den Bot manuell: `curl -s -X POST "https://api.telegram.org/bot<TOKEN>/sendMessage" -d chat_id="<CHAT_ID>" -d text="Test"`
+
+3. SMART-Fehler:
+   - Installieren Sie smartmontools: `apt-get install smartmontools`
+   - Überprüfen Sie die Festplatten-Berechtigungen
+
+### Logs überprüfen
 ```bash
-./proxmox_monitor.sh > /var/log/proxmox-monitor.log 2>&1
+tail -f /var/log/proxmox_monitor.log
 ```
 
-### Alarme
-
-Das Script sendet Benachrichtigungen über Telegram in folgenden Fällen:
-- CPU-Auslastung über dem definierten Schwellwert
-- RAM-Auslastung über dem definierten Schwellwert
-- Speicherplatz-Auslastung über dem definierten Schwellwert
-- Start des Monitoring-Services
-- Verbindungsprobleme zum Proxmox-Host
-
-### Lizenz
+## Lizenz
 
 Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe die [LICENSE](LICENSE) Datei für Details.
 
-### Beitragen
+## Beitragen
 
-1. Fork das Projekt
-2. Erstelle einen Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit deine Änderungen (`git commit -m 'Add some AmazingFeature'`)
-4. Push zu dem Branch (`git push origin feature/AmazingFeature`)
-5. Öffne einen Pull Request
+Beiträge sind willkommen! Bitte erstellen Sie einen Fork des Projekts und einen Pull Request mit Ihren Änderungen.
