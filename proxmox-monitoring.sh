@@ -287,7 +287,7 @@ main() {
     # Neue Checks hinzufügen
     alerts+=$(check_pve_services)
     alerts+=$(check_vms_and_containers)
-    alerts+=$(check_storage_performance)
+#    alerts+=$(check_storage_performance)
     
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
     if [ ! -z "$alerts" ]; then
