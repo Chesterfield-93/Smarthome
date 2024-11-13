@@ -31,12 +31,12 @@ Stelle sicher, dass dein Skript ausführbar ist:
 ```bash
 chmod +x /usr/local/bin/proxmox-v1.sh
 ```
-###2. Systemd-Dienstdatei erstellen
+### 2. Systemd-Dienstdatei erstellen
 Erstelle eine neue Dienstdatei für dein Skript:
 ```bash
 sudo nano /etc/systemd/system/proxmox-monitor.service
 ```
-###3. Dienstdatei konfigurieren
+### 3. Dienstdatei konfigurieren
 Füge den folgenden Inhalt in die Datei ein:
 ```bash
 [Unit]
@@ -54,21 +54,21 @@ User=root
 [Install]
 WantedBy=multi-user.target
 ```
-###4. Dienstdatei speichern und schließen
+### 4. Dienstdatei speichern und schließen
 Speichere die Datei und schließe den Texteditor.
 
-###5. Systemd-Dienst neu laden
+### 5. Systemd-Dienst neu laden
 Lade die Systemd-Dienste neu, um die neue Dienstdatei zu erkennen:
 ```bash
 sudo systemctl daemon-reload
 ```
-###6. Dienst starten und aktivieren
+### 6. Dienst starten und aktivieren
 Starte den Dienst und aktiviere ihn, damit er beim Systemstart automatisch gestartet wird:
 ```bash
 sudo systemctl start proxmox-monitor.service
 sudo systemctl enable proxmox-monitor.service
 ```
-###7. Dienststatus überprüfen
+### 7. Dienststatus überprüfen
 Überprüfe den Status des Dienstes, um sicherzustellen, dass er korrekt läuft:
 ```bash
 sudo systemctl status proxmox-monitor.service
