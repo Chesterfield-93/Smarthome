@@ -331,7 +331,7 @@ check_zfs_status() {
     if command -v zpool > /dev/null; then
         # Pool-Status prüfen
         local pool_status
-        pool_status=$(zpool status | grep -E "state:|errors:" | grep -v "No known data errors")
+        pool_status=$(zpool status | grep -E "state:|errors:")
         if [ ! -z "$pool_status" ]; then
             alerts="${alerts}⚠️ ZFS-Pool-Probleme gefunden:\n${pool_status}\n"
         fi
@@ -401,7 +401,7 @@ check_system_resources() {
 # Dienste-Status prüfen
 check_services() {
     local alerts=""
-    local services=("pve-cluster" "pvedaemon" "pveproxy" "pvestatd" "pvescheduler")
+    local services=("pvedaemon" "pveproxy" "pvestatd" "pvescheduler")
     
     for service in "${services[@]}"; do
         if ! systemctl is-active --quiet "$service"; then
