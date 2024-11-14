@@ -242,6 +242,24 @@ check_vm_backups() {
     echo "$alerts"
 }
 
+# Backup-Status prüfen
+check_backup_status() {
+    local alerts=""
+    # PBS Backup-Status prüfen (wenn vorhanden)
+    if [ -d "/etc/proxmox-backup" ]; then
+        local last_backup
+        last_backup=$(proxmox-backup-client status 2>/dev/null | grep "last backup" | awk '{print $NF}')
+        if [ ! -z "$last_backup" ]; then
+            local backup_age_hours
+            backup_age_hours=$(( ( $(date +%s) - $(date -d "$last_backup" +%s) ) / 3600 ))
+            if [ "$backup_age_hours" -gt "$BACKUP_AGE_HOURS" ]; then
+                alerts="${alerts}⚠️ Letztes Backup ist ${backup_age_hours} Stunden alt\n"
+            fi
+        fi
+    fi
+    echo "$alerts"
+}
+
 # Funktion zum Prüfen der Storage Performance
 check_storage_performance() {
     local alerts=""
@@ -330,24 +348,6 @@ check_zfs_status() {
                 fi
             fi
         done
-    fi
-    echo "$alerts"
-}
-
-# Backup-Status prüfen
-check_backup_status() {
-    local alerts=""
-    # PBS Backup-Status prüfen (wenn vorhanden)
-    if [ -d "/etc/proxmox-backup" ]; then
-        local last_backup
-        last_backup=$(proxmox-backup-client status 2>/dev/null | grep "last backup" | awk '{print $NF}')
-        if [ ! -z "$last_backup" ]; then
-            local backup_age_hours
-            backup_age_hours=$(( ( $(date +%s) - $(date -d "$last_backup" +%s) ) / 3600 ))
-            if [ "$backup_age_hours" -gt "$BACKUP_AGE_HOURS" ]; then
-                alerts="${alerts}⚠️ Letztes Backup ist ${backup_age_hours} Stunden alt\n"
-            fi
-        fi
     fi
     echo "$alerts"
 }
