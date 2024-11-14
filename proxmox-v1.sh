@@ -4,9 +4,9 @@
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
 
 # Konfigurationsvariablen
-TELEGRAM_BOT_TOKEN="your-bot-token"
-TELEGRAM_CHAT_ID="your-chat-id"
+TELEGRAM_BOT_TOKEN="your-token"
 HOSTNAME=$(hostname)
+TELEGRAM_CHAT_ID="your-chat-id"
 
 # Schwellwerte System
 CPU_THRESHOLD=80        # in Prozent
