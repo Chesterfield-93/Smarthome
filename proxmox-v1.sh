@@ -16,7 +16,7 @@ INODE_THRESHOLD=80      # in Prozent
 TEMP_THRESHOLD=65       # in Grad Celsius
 SMART_THRESHOLD=10      # Anzahl reallocated sectors
 ZFS_SCRUB_DAYS=30       # Maximales Alter des letzten Scrubs
-BACKUP_AGE_HOURS=26     # Maximales Alter des letzten Backups
+MAX_BACKUP_AGE_HOURS=26     # Maximales Alter des letzten Backups
 
 # Schwellwerte VMs
 VM_CPU_THRESHOLD=90     # in Prozent
@@ -205,59 +205,59 @@ check_vms_and_containers() {
 }
 
 # Funktion zum Prüfen der VM-Backup    s
-check_vm_backups() {
+check_backups() {
     local alerts=""
     local backup_dir="/var/lib/vz/dump"
     local current_time=$(date +%s)
+    local MAX_BACKUP_AGE_HOURS=${MAX_BACKUP_AGE_HOURS:-24}  # Standard: 24 Stunden, wenn nicht anders definiert
     
-    # Prüfe PBS-Backups falls verfügbar
-    if command -v proxmox-backup-client >/dev/null; then
-        local pbs_status
-        pbs_status=$(proxmox-backup-client list 2>/dev/null)
-        if [ $? -eq 0 ]; then
-            while IFS= read -r backup; do
-                local backup_time
-                backup_time=$(echo "$backup" | awk '{print $NF}')
-                local backup_age_days=$(( (current_time - $(date -d "$backup_time" +%s)) / 86400 ))
-                
-                if [ "$backup_age_days" -gt "$VM_BACKUP_AGE_DAYS" ]; then
-                    alerts="${alerts}⚠️ PBS-Backup ist ${backup_age_days} Tage alt\n"
-                fi
-            done < <(echo "$pbs_status" | grep -v "^$")
+    # PBS-Backup-Status prüfen (wenn vorhanden)
+    if [ -d "/etc/proxmox-backup" ]; then
+        # PBS-Backups prüfen
+        if command -v proxmox-backup-client >/dev/null; then
+            local pbs_status
+            pbs_status=$(proxmox-backup-client list 2>/dev/null)
+            if [ $? -eq 0 ]; then
+                while IFS= read -r backup; do
+                    local backup_time
+                    backup_time=$(echo "$backup" | awk '{print $NF}')
+                    local backup_age_hours=$(( (current_time - $(date -d "$backup_time" +%s)) / 3600 ))
+                    
+                    if [ "$backup_age_hours" -gt "$MAX_BACKUP_AGE_HOURS" ]; then
+                        # Füge Tage zur besseren Lesbarkeit hinzu, wenn > 24 Stunden
+                        if [ "$backup_age_hours" -gt 24 ]; then
+                            local days=$((backup_age_hours / 24))
+                            local remaining_hours=$((backup_age_hours % 24))
+                            alerts="${alerts}⚠️ PBS-Backup ist ${days} Tage und ${remaining_hours} Stunden alt\n"
+                        else
+                            alerts="${alerts}⚠️ PBS-Backup ist ${backup_age_hours} Stunden alt\n"
+                        fi
+                    fi
+                done < <(echo "$pbs_status" | grep -v "^$")
+            fi
         fi
     fi
     
-    # Prüfe lokale vzdump-Backups
+    # Lokale vzdump-Backups prüfen
     if [ -d "$backup_dir" ]; then
         while IFS= read -r backup_file; do
-            local file_age_days=$(( (current_time - $(stat -c %Y "$backup_file")) / 86400 ))
+            local backup_age_hours=$(( (current_time - $(stat -c %Y "$backup_file")) / 3600 ))
             local vmid=$(echo "$backup_file" | grep -o 'vzdump-qemu-[0-9]*' | grep -o '[0-9]*')
             
-            if [ "$file_age_days" -gt "$VM_BACKUP_AGE_DAYS" ]; then
-                alerts="${alerts}⚠️ Lokales Backup für VM ${vmid} ist ${file_age_days} Tage alt\n"
+            if [ "$backup_age_hours" -gt "$MAX_BACKUP_AGE_HOURS" ]; then
+                # Füge Tage zur besseren Lesbarkeit hinzu, wenn > 24 Stunden
+                if [ "$backup_age_hours" -gt 24 ]; then
+                    local days=$((backup_age_hours / 24))
+                    local remaining_hours=$((backup_age_hours % 24))
+                    alerts="${alerts}⚠️ Lokales Backup für VM ${vmid} ist ${days} Tage und ${remaining_hours} Stunden alt\n"
+                else
+                    alerts="${alerts}⚠️ Lokales Backup für VM ${vmid} ist ${backup_age_hours} Stunden alt\n"
+                fi
             fi
         done < <(find "$backup_dir" -name "vzdump-qemu-*" -type f -mtime -30)
     fi
     
-    echo "$alerts"
-}
-
-# Backup-Status prüfen
-check_backup_status() {
-    local alerts=""
-    # PBS Backup-Status prüfen (wenn vorhanden)
-    if [ -d "/etc/proxmox-backup" ]; then
-        local last_backup
-        last_backup=$(proxmox-backup-client status 2>/dev/null | grep "last backup" | awk '{print $NF}')
-        if [ ! -z "$last_backup" ]; then
-            local backup_age_hours
-            backup_age_hours=$(( ( $(date +%s) - $(date -d "$last_backup" +%s) ) / 3600 ))
-            if [ "$backup_age_hours" -gt "$BACKUP_AGE_HOURS" ]; then
-                alerts="${alerts}⚠️ Letztes Backup ist ${backup_age_hours} Stunden alt\n"
-            fi
-        fi
-    fi
-    echo "$alerts"
+    echo -e "$alerts"
 }
 
 # Funktion zum Prüfen der Storage Performance
@@ -421,8 +421,7 @@ main() {
     alerts+=$(check_smart_status)
     alerts+=$(check_zfs_status)
     alerts+=$(check_pve_services)
-    alerts+=$(check_vms_and_containers)
-    alerts+=$(check_vm_backups)
+    alerts+=$(check_backups)
     alerts+=$(check_backup_status)
     alerts+=$(check_storage_performance)
     alerts+=$(check_services)
