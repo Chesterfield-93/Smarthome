@@ -26,10 +26,15 @@ Dieses Skript dient zur erweiterten Überwachung von Proxmox-Servern, einschlie�
 
 ## Implementierung als Systemd-Dienst
 
+### 0. Script kopieren
+- git pull in Ordner
+- Einsetzen von Token und Chat ID in Script
+- cp des scripts nach /usr/local/bin/proxmox-monitor.sh
+
 ### 1. Skript vorbereiten
 Stelle sicher, dass dein Skript ausführbar ist:
 ```bash
-chmod +x /usr/local/bin/proxmox-v1.sh
+chmod +x /usr/local/bin/proxmox-monitor.sh
 ```
 ### 2. Systemd-Dienstdatei erstellen
 Erstelle eine neue Dienstdatei für dein Skript:
@@ -44,7 +49,7 @@ Description=Proxmox Monitoring Script
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/proxmox-v1.sh
+ExecStart=/usr/local/bin/proxmox-monitor.sh
 WorkingDirectory=/usr/local/bin/
 StandardOutput=journal
 StandardError=journal
