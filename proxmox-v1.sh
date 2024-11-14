@@ -204,7 +204,7 @@ check_vms_and_containers() {
     echo "$alerts"
 }
 
-# Funktion zum Prüfen der VM-Backups
+# Funktion zum Prüfen der VM-Backup    s
 check_vm_backups() {
     local alerts=""
     local backup_dir="/var/lib/vz/dump"
@@ -274,6 +274,143 @@ check_storage_performance() {
     echo "$alerts"
 }
 
+# CPU-Temperatur prüfen
+check_cpu_temp() {
+    if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
+        local temp
+        temp=$(( $(cat /sys/class/thermal/thermal_zone0/temp) / 1000))
+        if [ "$temp" -gt "$TEMP_THRESHOLD" ]; then
+            echo "⚠️ CPU-Temperatur: ${temp}°C"
+        fi
+    fi
+}
+
+# SMART-Status prüfen
+check_smart_status() {
+    local alerts=""
+    for disk in $(lsblk -dnp -o NAME); do
+        if smartctl -H "$disk" > /dev/null 2>&1; then
+            local smart_status
+            smart_status=$(smartctl -H "$disk" | grep -i "smart overall-health" | awk '{print $NF}')
+            local reallocated
+            reallocated=$(smartctl -A "$disk" | grep "Reallocated_Sector_Ct" | awk '{print $10}')
+            
+            if [ "$smart_status" != "PASSED" ]; then
+                alerts="${alerts}⚠️ SMART-Status für ${disk}: ${smart_status}\n"
+            fi
+            
+            if [ ! -z "$reallocated" ] && [ "$reallocated" -gt "$SMART_THRESHOLD" ]; then
+                alerts="${alerts}⚠️ Reallocated Sectors für ${disk}: ${reallocated}\n"
+            fi
+        fi
+    done
+    echo "$alerts"
+}
+
+# ZFS-Status prüfen
+check_zfs_status() {
+    local alerts=""
+    if command -v zpool > /dev/null; then
+        # Pool-Status prüfen
+        local pool_status
+        pool_status=$(zpool status | grep -E "state:|errors:" | grep -v "No known data errors")
+        if [ ! -z "$pool_status" ]; then
+            alerts="${alerts}⚠️ ZFS-Pool-Probleme gefunden:\n${pool_status}\n"
+        fi
+        
+        # Scrub-Alter prüfen
+        for pool in $(zpool list -H -o name); do
+            local scrub_age
+            scrub_age=$(zpool status "$pool" | grep "scan" | grep -oP "(?<=scrub on )[^)]+")
+            if [ ! -z "$scrub_age" ]; then
+                local days_since_scrub
+                days_since_scrub=$(( ( $(date +%s) - $(date -d "$scrub_age" +%s) ) / 86400 ))
+                if [ "$days_since_scrub" -gt "$ZFS_SCRUB_DAYS" ]; then
+                    alerts="${alerts}⚠️ Letzter ZFS Scrub für ${pool} ist ${days_since_scrub} Tage alt\n"
+                fi
+            fi
+        done
+    fi
+    echo "$alerts"
+}
+
+# Backup-Status prüfen
+check_backup_status() {
+    local alerts=""
+    # PBS Backup-Status prüfen (wenn vorhanden)
+    if [ -d "/etc/proxmox-backup" ]; then
+        local last_backup
+        last_backup=$(proxmox-backup-client status 2>/dev/null | grep "last backup" | awk '{print $NF}')
+        if [ ! -z "$last_backup" ]; then
+            local backup_age_hours
+            backup_age_hours=$(( ( $(date +%s) - $(date -d "$last_backup" +%s) ) / 3600 ))
+            if [ "$backup_age_hours" -gt "$BACKUP_AGE_HOURS" ]; then
+                alerts="${alerts}⚠️ Letztes Backup ist ${backup_age_hours} Stunden alt\n"
+            fi
+        fi
+    fi
+    echo "$alerts"
+}
+
+# System-Ressourcen prüfen
+check_system_resources() {
+    local alerts=""
+    
+    # CPU-Auslastung
+    local cpu_usage
+    cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d. -f1)
+    if [ "$cpu_usage" -gt "$CPU_THRESHOLD" ]; then
+        alerts="${alerts}⚠️ CPU-Auslastung: ${cpu_usage}%\n"
+    fi
+    
+    # RAM-Auslastung
+    local mem_total
+    local mem_used
+    local mem_usage
+    mem_total=$(free -m | awk '/Mem:/ {print $2}')
+    mem_used=$(free -m | awk '/Mem:/ {print $3}')
+    mem_usage=$(( (mem_used * 100) / mem_total ))
+    if [ "$mem_usage" -gt "$RAM_THRESHOLD" ]; then
+        alerts="${alerts}⚠️ RAM-Auslastung: ${mem_usage}%\n"
+    fi
+    
+    # Speicherplatz und Inodes
+    while IFS= read -r line; do
+        local usage
+        local mount
+        usage=$(echo "$line" | awk '{print $5}' | cut -d% -f1)
+        mount=$(echo "$line" | awk '{print $6}')
+        if [ "$usage" -gt "$STORAGE_THRESHOLD" ]; then
+            alerts="${alerts}⚠️ Speicherplatz auf ${mount}: ${usage}%\n"
+        fi
+    done < <(df -h | grep -vE '^Filesystem|tmpfs|cdrom|udev')
+    
+    while IFS= read -r line; do
+        local inode_usage
+        local mount
+        inode_usage=$(echo "$line" | awk '{print $5}' | cut -d% -f1)
+        mount=$(echo "$line" | awk '{print $6}')
+        if [ "$inode_usage" -gt "$INODE_THRESHOLD" ]; then
+            alerts="${alerts}⚠️ Inode-Nutzung auf ${mount}: ${inode_usage}%\n"
+        fi
+    done < <(df -i | grep -vE '^Filesystem|tmpfs|cdrom|udev')
+    
+    echo "$alerts"
+}
+
+# Dienste-Status prüfen
+check_services() {
+    local alerts=""
+    local services=("pve-cluster" "pvedaemon" "pveproxy" "pvestatd" "pvescheduler")
+    
+    for service in "${services[@]}"; do
+        if ! systemctl is-active --quiet "$service"; then
+            alerts="${alerts}⚠️ Service ${service} ist nicht aktiv\n"
+        fi
+    done
+    echo "$alerts"
+}
+
 # Hauptfunktion
 main() {
     local alerts=""
@@ -283,13 +420,12 @@ main() {
     alerts+=$(check_cpu_temp)
     alerts+=$(check_smart_status)
     alerts+=$(check_zfs_status)
-    alerts+=$(check_backup_status)
-    
-    # Neue Checks hinzufügen
     alerts+=$(check_pve_services)
     alerts+=$(check_vms_and_containers)
-#    alerts+=$(check_storage_performance)
-    
+    alerts+=$(check_vm_backups)
+    alerts+=$(check_backup_status)
+    alerts+=$(check_storage_performance)
+
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
     if [ ! -z "$alerts" ]; then
         if [ ! -f "$TEMP_FILE" ] || [ "$(cat "$TEMP_FILE")" != "$alerts" ]; then
