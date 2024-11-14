@@ -425,6 +425,7 @@ main() {
     alerts+=$(check_vm_backups)
     alerts+=$(check_backup_status)
     alerts+=$(check_storage_performance)
+    alerts+=$(check_services)
 
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
     if [ ! -z "$alerts" ]; then
