@@ -5,29 +5,9 @@
 
 # Konfigurationsvariablen
 TELEGRAM_BOT_TOKEN="your-token"
-HOSTNAME=$(hostname)
-TELEGRAM_CHAT_ID="your-chat-id"
+source ./parameters
+source ./telegram-config
 
-# Schwellwerte System
-CPU_THRESHOLD=80        # in Prozent
-RAM_THRESHOLD=80        # in Prozent
-STORAGE_THRESHOLD=80    # in Prozent
-INODE_THRESHOLD=80      # in Prozent
-TEMP_THRESHOLD=65       # in Grad Celsius
-SMART_THRESHOLD=10      # Anzahl reallocated sectors
-ZFS_SCRUB_DAYS=30       # Maximales Alter des letzten Scrubs
-MAX_BACKUP_AGE_HOURS=26     # Maximales Alter des letzten Backups
-
-# Schwellwerte VMs
-VM_CPU_THRESHOLD=90     # in Prozent
-VM_RAM_THRESHOLD=90     # in Prozent
-VM_STORAGE_THRESHOLD=85 # in Prozent
-VM_BACKUP_AGE_DAYS=2    # Maximales Alter des letzten VM-Backups
-
-# Pfade
-LOG_FILE="/var/log/proxmox_monitor.log"
-TEMP_FILE="/tmp/proxmox_monitor_state"
-STATE_DIR="/var/lib/proxmox_monitor"
 mkdir -p "$STATE_DIR"
 
 # Logging-Funktion
