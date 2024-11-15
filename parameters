@@ -21,4 +21,3 @@ VM_BACKUP_AGE_DAYS=2    # Maximales Alter des letzten VM-Backups
 LOG_FILE="/var/log/proxmox_monitor.log"
 TEMP_FILE="/tmp/proxmox_monitor_state"
 STATE_DIR="/var/lib/proxmox_monitor"
-mkdir -p "$STATE_DIR"
