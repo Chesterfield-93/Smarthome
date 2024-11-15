@@ -1,4 +1,5 @@
 # Konfigurationsvariablen
+HOSTNAME=$(hostname)
 
 # Schwellwerte System
 CPU_THRESHOLD=80        # in Prozent
