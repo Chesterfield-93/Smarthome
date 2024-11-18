@@ -32,6 +32,51 @@ send_telegram_message() {
         -d text="${formatted_message}" > /dev/null
 }
 
+# Funktion zum Überprüfen und Senden einer regelmäßigen Statusnachricht
+check_and_send_status_message() {
+    local interval=${STATUS_INTERVAL:-3600}  # Standard: 3600 Sekunden (1 Stunde), wenn nicht anders definiert
+    local last_status_file="$STATE_DIR/last_status_time"
+    local current_time=$(date +%s)
+
+    # Überprüfen, wann die letzte Statusnachricht gesendet wurde
+    if [ -f "$last_status_file" ]; then
+        local last_status_time=$(cat "$last_status_file")
+        local time_diff=$((current_time - last_status_time))
+        if [ "$time_diff" -ge "$interval" ]; then
+            alerts="${alerts}ℹ️ Das Überwachungsskript läuft noch.\n"
+            echo "$current_time" > "$last_status_file"
+        fi
+    else
+        # Wenn die Datei nicht existiert, Statusnachricht senden und Datei erstellen
+        alerts="${alerts}ℹ️ Das Überwachungsskript läuft noch.\n"
+        echo "$current_time" > "$last_status_file"
+    fi
+}
+
+# Funktion zum Überprüfen und Senden einer regelmäßigen Statusnachricht
+check_and_send_status_message() {
+    local interval=${STATUS_INTERVAL:-3600}  # Standard: 3600 Sekunden (1 Stunde), wenn nicht anders definiert
+    local last_status_file="$STATE_DIR/last_status_time"
+    local current_time=$(date +%s)
+    local status_message=""
+
+    # Überprüfen, wann die letzte Statusnachricht gesendet wurde
+    if [ -f "$last_status_file" ]; then
+        local last_status_time=$(cat "$last_status_file")
+        local time_diff=$((current_time - last_status_time))
+        if [ "$time_diff" -ge "$interval" ]; then
+            status_message="ℹ️ Das Überwachungsskript läuft noch.\n"
+            echo "$current_time" > "$last_status_file"
+        fi
+    else
+        # Wenn die Datei nicht existiert, Statusnachricht senden und Datei erstellen
+        status_message="ℹ️ Das Überwachungsskript läuft noch.\n"
+        echo "$current_time" > "$last_status_file"
+    fi
+
+    echo "$status_message"
+}
+
 # Funktion zum Prüfen der Proxmox-Dienste
 check_pve_services() {
     local alerts=""
@@ -409,6 +454,9 @@ check_services() {
 main() {
     local alerts=""
     
+    # Statusnachricht überprüfen und senden
+    alerts+=$(check_and_send_status_message)
+
     # Bestehende Checks beibehalten
     alerts+=$(check_system_resources)
     alerts+=$(check_cpu_temp)
@@ -432,5 +480,8 @@ main() {
 # Aufräumen alter Logs (älter als 7 Tage)
 find "$LOG_FILE" -mtime +7 -delete 2>/dev/null
 
-# Script ausführen
-main
+# Endlosschleife mit Schlafintervall
+while true; do
+    main
+    sleep $SLEEP_INTERVAL  # Warten, bevor das Skript erneut ausgeführt wird
+done
