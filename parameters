@@ -2,6 +2,7 @@
 HOSTNAME=$(hostname)
 SLEEP_INTERVAL=120      # Script-Zyklus in Sekunden
 STATUS_INTERVAL=$((1 * 3600)) # Info-Zyklus in Stunden vor dem *
+SYSTEM_INFO_INTERVAL=$((1 * 86400)) # Info-Zyklus in Tagen vor dem *
 
 # Schwellwerte System
 CPU_THRESHOLD=80        # in Prozent

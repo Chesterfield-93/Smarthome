@@ -54,6 +54,39 @@ check_and_send_status_message() {
     fi
 }
 
+# Funktion zum Senden von Systeminformationen in regelmäßigen Abständen
+send_system_info() {
+    local interval=${SYSTEM_INFO_INTERVAL:-86400}  # Standard: 86400 Sekunden (24 Stunden), wenn nicht anders definiert
+    local last_info_file="$STATE_DIR/last_info_time"
+    local current_time=$(date +%s)
+
+    # Überprüfen, ob die Datei existiert, und erstellen, falls nicht
+    if [ ! -f "$last_info_file" ]; then
+        echo "$current_time" > "$last_info_file"
+    fi
+
+    local last_info_time=$(cat "$last_info_file")
+    local time_diff=$((current_time - last_info_time))
+    if [ "$time_diff" -ge "$interval" ]; then
+        # Sammeln der SMART-Daten der Festplatten
+        local system_info=""
+        for disk in $(lsblk -dnp -o NAME); do
+            if smartctl -H "$disk" > /dev/null 2>&1; then
+                local smart_status
+                smart_status=$(smartctl -H "$disk" | grep -i "smart overall-health" | awk '{print $NF}')
+                local reallocated
+                reallocated=$(smartctl -A "$disk" | grep "Reallocated_Sector_Ct" | awk '{print $10}')
+                system_info="${system_info}Festplatte: ${disk}\nSMART-Status: ${smart_status}\nReallocated Sectors: ${reallocated}\n\n"
+            fi
+        done
+
+        # Weitere Systeminformationen können hier hinzugefügt werden
+
+        send_telegram_message "Systeminformationen:%0A${system_info}"
+        echo "$current_time" > "$last_info_file"
+    fi
+}
+
 # Funktion zum Überprüfen und Senden einer regelmäßigen Statusnachricht
 check_and_send_status_message() {
     local interval=${STATUS_INTERVAL:-3600}  # Standard: 3600 Sekunden (1 Stunde), wenn nicht anders definiert
@@ -454,6 +487,9 @@ check_services() {
 main() {
     local alerts=""
     
+    # Systeminformationen überprüfen und senden
+    send_system_info
+
     # Statusnachricht überprüfen und senden
     alerts+=$(check_and_send_status_message)
 
