@@ -458,13 +458,21 @@ main() {
     alerts+=$(check_and_send_status_message)
 
     # Bestehende Checks beibehalten
+    echo "check_system_resources"
     alerts+=$(check_system_resources)
+    echo "check_cpu_temp"
     alerts+=$(check_cpu_temp)
+    echo "check_smart_status"
     alerts+=$(check_smart_status)
+    echo "check_zfs_status"
     alerts+=$(check_zfs_status)
+    echo "check_pve_services"
     alerts+=$(check_pve_services)
+    echo "check_backups"
     alerts+=$(check_backups)
+    echo "check_storage_performance"
     alerts+=$(check_storage_performance)
+    echo "check_services"
     alerts+=$(check_services)
 
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
