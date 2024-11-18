@@ -504,13 +504,15 @@ main() {
     alerts+=$(check_zfs_status)
     echo "check_pve_services"
     alerts+=$(check_pve_services)
+    echo "check_vms_and_containers"
+    alerts+=$(check_vms_and_containers)
     echo "check_backups"
     alerts+=$(check_backups)
     echo "check_storage_performance"
     alerts+=$(check_storage_performance)
     echo "check_services"
     alerts+=$(check_services)
-    echo "all checks done"
+    echo "all checks done. Alerts:"
     echo $alerts
 
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
