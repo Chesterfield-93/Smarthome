@@ -120,14 +120,13 @@ check_pve_services() {
         "pveproxy:Web Interface"
         "pvestatd:Status Daemon"
         "pvescheduler:Task Scheduler"
-        #"corosync:Cluster Communication"
         "proxmox-backup:Backup Service"
         "vz:Container Management"
         "qemu-server:VM Management"
         "ceph.target:Ceph Storage"
         "pve-firewall:Firewall"
     )
-    
+
     for service_info in "${services[@]}"; do
         IFS=':' read -r service description <<< "$service_info"
         if systemctl is-enabled "$service" &>/dev/null; then
@@ -136,16 +135,16 @@ check_pve_services() {
             fi
         fi
     done
-    
-    # Cluster-Status prüfen
-    if command -v pvecm >/dev/null; then
+
+    # Cluster-Status prüfen, wenn pvecm verfügbar ist und ein Cluster konfiguriert ist
+    if command -v pvecm >/dev/null && [ -f /etc/pve/corosync.conf ]; then
         local cluster_status
         cluster_status=$(pvecm status 2>&1)
         if echo "$cluster_status" | grep -qi "error\|warning"; then
             alerts="${alerts}⚠️ Cluster-Problem erkannt:\n$(echo "$cluster_status" | grep -i 'error\|warning')\n"
         fi
     fi
-    
+
     echo "$alerts"
 }
 
