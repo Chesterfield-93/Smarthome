@@ -378,6 +378,7 @@ check_system_resources() {
         inode_usage=$(echo "$line" | awk '{print $5}' | cut -d% -f1)
 
         ## DEBUG ##
+        echo "DEBUG"
         echo $inode_usage
         echo $INODE_THRESHOLD
 
