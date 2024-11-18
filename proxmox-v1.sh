@@ -269,6 +269,10 @@ check_storage_performance() {
             if [ ! -z "$await" ] && [ $(echo "$await > 100" | bc -l) -eq 1 ]; then
                 high_io_devices="${high_io_devices}${device} (${await}ms) "
             fi
+            if [[ "$await" =~ ^[0-9]+(\.[0-9]+)?$ ]] && [ $(echo "$await > 100" | bc -l) -eq 1 ]; then
+                high_io_devices="${high_io_devices}${device} (${await}ms) "
+            fi
+
         done < <(iostat -x 1 2 | tail -n +4)
         
         if [ ! -z "$high_io_devices" ]; then
