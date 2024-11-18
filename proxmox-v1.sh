@@ -25,11 +25,12 @@ log() {
 # Funktion zum Senden von Telegram-Nachrichten
 send_telegram_message() {
     local message="$1"
-    local formatted_message="🖥️ <b>Host:</b> ${HOSTNAME}\n${message}"
+    local formatted_message=$(echo -e "$message" | sed 's/\\n/%0A/g')
+    formatted_message="🖥️ <b>Host:</b> ${HOSTNAME}%0A${formatted_message}"
     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        -d chat_id="${TELEGRAM_CHAT_ID}" \
-        -d parse_mode="HTML" \
-        -d text="${formatted_message}" > /dev/null
+    -d chat_id="${TELEGRAM_CHAT_ID}" \
+    -d parse_mode="HTML" \
+    -d text="${formatted_message}" > /dev/null
 }
 
 # Funktion zum Überprüfen und Senden einer regelmäßigen Statusnachricht
