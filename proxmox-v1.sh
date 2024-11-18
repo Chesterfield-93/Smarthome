@@ -488,6 +488,7 @@ main() {
     local alerts=""
     
     # Systeminformationen überprüfen und senden
+    echo "send_system_info"
     send_system_info
 
     # Statusnachricht überprüfen und senden
@@ -510,6 +511,8 @@ main() {
     alerts+=$(check_storage_performance)
     echo "check_services"
     alerts+=$(check_services)
+    echo "all checks done"
+    echo $alerts
 
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
     if [ ! -z "$alerts" ]; then
