@@ -283,7 +283,7 @@ check_storage_performance() {
 check_cpu_temp() {
     if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
         local temp
-        temp=$(( $(cat /sys/class/thermal/thermal_zone0/temp) / 1000))
+        temp=$(( $(cat /sys/class/hwmon/hwmon5/temp1_input) / 1000))
         if [ "$temp" -gt "$TEMP_THRESHOLD" ]; then
             echo "⚠️ CPU-Temperatur: ${temp}°C"
         fi
@@ -383,7 +383,7 @@ check_system_resources() {
         echo $INODE_THRESHOLD
 
         mount=$(echo "$line" | awk '{print $6}')
-        if [ "$inode_usage" -gt "$INODE_THRESHOLD" ]; then
+        if [[ "$inode_usage" =~ ^[0-9]+$ ]] && [ "$inode_usage" -gt "$INODE_THRESHOLD" ]; then
             alerts="${alerts}⚠️ Inode-Nutzung auf ${mount}: ${inode_usage}%\n"
         fi
     done < <(df -i | grep -vE '^Filesystem|tmpfs|cdrom|udev')
