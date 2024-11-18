@@ -263,9 +263,6 @@ check_vms_and_containers() {
     # Status-Datei aktualisieren
     mv "${state_file}.tmp" "$state_file" 2>/dev/null
 
-    # Backup-Status prüfen
-    alerts+=$(check_vm_backups)
-
     echo "$alerts"
 }
 
