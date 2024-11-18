@@ -1,7 +1,7 @@
 # Konfigurationsvariablen
 HOSTNAME=$(hostname)
 SLEEP_INTERVAL=120      # Script-Zyklus in Sekunden
-STATUS_INTERVAL=1*3600 # Info-Zyklus in Stunden
+STATUS_INTERVAL=$((1 * 3600)) # Info-Zyklus in Stunden vor dem *
 
 # Schwellwerte System
 CPU_THRESHOLD=80        # in Prozent
