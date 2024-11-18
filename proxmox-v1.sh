@@ -365,10 +365,16 @@ check_zfs_status() {
         # Pool-Status prüfen
         local pool_status
         pool_status=$(zpool status | grep -E "state:|errors:")
+        
+        # Filtere den Status "state: ONLINE" heraus
+        if echo "$pool_status" | grep -q "state: ONLINE"; then
+            pool_status=$(echo "$pool_status" | grep -v "state: ONLINE")
+        fi
+
         if [ ! -z "$pool_status" ]; then
             alerts="${alerts}⚠️ ZFS-Pool-Probleme gefunden:\n${pool_status}\n"
         fi
-        
+
         # Scrub-Alter prüfen
         for pool in $(zpool list -H -o name); do
             local scrub_age
