@@ -415,7 +415,6 @@ main() {
     alerts+=$(check_zfs_status)
     alerts+=$(check_pve_services)
     alerts+=$(check_backups)
-    alerts+=$(check_backup_status)
     alerts+=$(check_storage_performance)
     alerts+=$(check_services)
 
