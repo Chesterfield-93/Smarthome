@@ -87,7 +87,7 @@ check_pve_services() {
         "pveproxy:Web Interface"
         "pvestatd:Status Daemon"
         "pvescheduler:Task Scheduler"
-        "corosync:Cluster Communication"
+        #"corosync:Cluster Communication"
         "proxmox-backup:Backup Service"
         "vz:Container Management"
         "qemu-server:VM Management"
@@ -367,10 +367,8 @@ check_zfs_status() {
         local pool_status
         pool_status=$(zpool status | grep -E "state:|errors:")
         
-        # Filtere den Status "state: ONLINE" heraus
-        if echo "$pool_status" | grep -q "state: ONLINE"; then
-            pool_status=$(echo "$pool_status" | grep -v "state: ONLINE")
-        fi
+        # Filtere den Status "state: ONLINE" und "errors: No known data errors" heraus
+        pool_status=$(echo "$pool_status" | grep -v -E "state: ONLINE|errors: No known data errors")
 
         if [ ! -z "$pool_status" ]; then
             alerts="${alerts}⚠️ ZFS-Pool-Probleme gefunden:\n${pool_status}\n"
