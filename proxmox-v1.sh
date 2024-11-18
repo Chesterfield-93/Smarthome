@@ -4,12 +4,12 @@
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
 
 # Konfigurationsvariablen
-# Source the parameters file
+# Laden der parameters Datei
 if ! source ./parameters; then
   echo "Fehler: Die Datei 'parameters' konnte nicht gesourced werden."
   exit 1
 fi
-# Source the telegram-config file
+# Laden der telegram-config Datei
 if ! source ./telegram-config; then
   echo "Fehler: Die Datei 'telegram-config' konnte nicht gesourced werden."
   exit 1
