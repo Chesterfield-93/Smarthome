@@ -266,9 +266,6 @@ check_storage_performance() {
             device=$(echo "$line" | awk '{print $1}')
             await=$(echo "$line" | awk '{print $10}')
             
-            if [ ! -z "$await" ] && [ $(echo "$await > 100" | bc -l) -eq 1 ]; then
-                high_io_devices="${high_io_devices}${device} (${await}ms) "
-            fi
             if [[ "$await" =~ ^[0-9]+(\.[0-9]+)?$ ]] && [ $(echo "$await > 100" | bc -l) -eq 1 ]; then
                 high_io_devices="${high_io_devices}${device} (${await}ms) "
             fi
