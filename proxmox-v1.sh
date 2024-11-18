@@ -4,9 +4,16 @@
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
 
 # Konfigurationsvariablen
-TELEGRAM_BOT_TOKEN="your-token"
-source ./parameters
-source ./telegram-config
+# Source the parameters file
+if ! source ./parameters; then
+  echo "Fehler: Die Datei 'parameters' konnte nicht gesourced werden."
+  exit 1
+fi
+# Source the telegram-config file
+if ! source ./telegram-config; then
+  echo "Fehler: Die Datei 'telegram-config' konnte nicht gesourced werden."
+  exit 1
+fi
 
 mkdir -p "$STATE_DIR"
 
@@ -369,6 +376,11 @@ check_system_resources() {
         local inode_usage
         local mount
         inode_usage=$(echo "$line" | awk '{print $5}' | cut -d% -f1)
+
+        ## DEBUG ##
+        echo $inode_usage
+        echo $INODE_THRESHOLD
+
         mount=$(echo "$line" | awk '{print $6}')
         if [ "$inode_usage" -gt "$INODE_THRESHOLD" ]; then
             alerts="${alerts}⚠️ Inode-Nutzung auf ${mount}: ${inode_usage}%\n"
