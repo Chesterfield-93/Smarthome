@@ -470,6 +470,8 @@ main() {
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
     if [ ! -z "$alerts" ]; then
         if [ ! -f "$TEMP_FILE" ] || [ "$(cat "$TEMP_FILE")" != "$alerts" ]; then
+            echo "Sende Telegram Nachricht:"
+            echo "$alerts"
             send_telegram_message "$alerts"
             echo "$alerts" > "$TEMP_FILE"
             log "$alerts"
