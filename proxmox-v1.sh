@@ -423,11 +423,6 @@ check_system_resources() {
         local mount
         inode_usage=$(echo "$line" | awk '{print $5}' | cut -d% -f1)
 
-        ## DEBUG ##
-        echo "DEBUG"
-        echo $inode_usage
-        echo $INODE_THRESHOLD
-
         mount=$(echo "$line" | awk '{print $6}')
         if [[ "$inode_usage" =~ ^[0-9]+$ ]] && [ "$inode_usage" -gt "$INODE_THRESHOLD" ]; then
             alerts="${alerts}⚠️ Inode-Nutzung auf ${mount}: ${inode_usage}%\n"
