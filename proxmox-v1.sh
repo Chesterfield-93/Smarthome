@@ -39,8 +39,6 @@ check_and_send_status_message() {
     local last_status_file="$STATE_DIR/last_status_time"
     local current_time=$(date +%s)
 
-    local alerts=""
-
     # Überprüfen, wann die letzte Statusnachricht gesendet wurde
     if [ -f "$last_status_file" ]; then
         local last_status_time=$(cat "$last_status_file")
@@ -51,10 +49,9 @@ check_and_send_status_message() {
         fi
     else
         # Wenn die Datei nicht existiert, Statusnachricht senden und Datei erstellen
-        alerts="${alerts}ℹ️ Das Überwachungsskript läuft noch.\n"
+        alerts="${alerts} $(date +"%T") ℹ️ Das Überwachungsskript läuft noch.\n"
         echo "$current_time" > "$last_status_file"
     fi
-    echo "$alerts"
 }
 
 # Funktion zum Senden von Systeminformationen in regelmäßigen Abständen
