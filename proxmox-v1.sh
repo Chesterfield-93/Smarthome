@@ -3,6 +3,8 @@
 # proxmox_local_monitor.sh
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
 
+SCRIPT_VERSION="0.10"
+
 # Konfigurationsvariablen
 # Laden der parameters Datei
 if ! source ./parameters; then
@@ -33,25 +35,11 @@ send_telegram_message() {
     -d text="${formatted_message}" > /dev/null
 }
 
-# Funktion zum Überprüfen und Senden einer regelmäßigen Statusnachricht
-check_and_send_status_message() {
-    local interval=${STATUS_INTERVAL:-3600}  # Standard: 3600 Sekunden (1 Stunde), wenn nicht anders definiert
-    local last_status_file="$STATE_DIR/last_status_time"
-    local current_time=$(date +%s)
-
-    # Überprüfen, wann die letzte Statusnachricht gesendet wurde
-    if [ -f "$last_status_file" ]; then
-        local last_status_time=$(cat "$last_status_file")
-        local time_diff=$((current_time - last_status_time))
-        if [ "$time_diff" -ge "$interval" ]; then
-            alerts="${alerts}ℹ️ Das Überwachungsskript läuft noch.\n"
-            echo "$current_time" > "$last_status_file"
-        fi
-    else
-        # Wenn die Datei nicht existiert, Statusnachricht senden und Datei erstellen
-        alerts="${alerts} $(date +"%T") ℹ️ Das Überwachungsskript läuft noch.\n"
-        echo "$current_time" > "$last_status_file"
-    fi
+# Funktion zum Senden der Versionsnummer
+send_hello() {
+    local version="$SCRIPT_VERSION"
+    local message="📟 Proxmox Monitor Script gestartet. Version: ${version}"
+    send_telegram_message "$message"
 }
 
 # Funktion zum Senden von Systeminformationen in regelmäßigen Abständen
@@ -59,6 +47,7 @@ send_system_info() {
     local interval=${SYSTEM_INFO_INTERVAL:-86400}  # Standard: 86400 Sekunden (24 Stunden), wenn nicht anders definiert
     local last_info_file="$STATE_DIR/last_info_time"
     local current_time=$(date +%s)
+    local system_info=""
 
     # Überprüfen, ob die Datei existiert, und erstellen, falls nicht
     if [ ! -f "$last_info_file" ]; then
@@ -69,7 +58,6 @@ send_system_info() {
     local time_diff=$((current_time - last_info_time))
     if [ "$time_diff" -ge "$interval" ]; then
         # Sammeln der SMART-Daten der Festplatten
-        local system_info=""
         for disk in $(lsblk -dnp -o NAME); do
             if smartctl -H "$disk" > /dev/null 2>&1; then
                 local smart_status
@@ -80,6 +68,31 @@ send_system_info() {
             fi
         done
 
+        # Informationen über die RAM-Auslastung
+        # Gesamt-RAM-Nutzung ermitteln
+        total_mem=$(free -m | awk '/^Mem:/ {print $2}')
+
+        # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
+        zfs_arc=$(arc_summary | grep "ARC Size" | awk '{print $3, $4}')
+        zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
+        zfs_arc_unit=$(echo $zfs_arc | awk '{print $2}')
+
+        # Einheit erkennen und in MiB umrechnen
+        if [ "$zfs_arc_unit" == "GiB" ]; then
+            zfs_arc_mb=$(echo "$zfs_arc_value * 1024" | bc)
+        elif [ "$zfs_arc_unit" == "MiB" ]; then
+            zfs_arc_mb=$zfs_arc_value
+        else
+            echo "Unbekannte Einheit: $zfs_arc_unit"
+            exit 1
+        fi
+
+        # Effektive RAM-Nutzung berechnen
+        effective_mem_usage=$((total_mem - zfs_arc_mb))
+
+        # RAM-Auslastung
+        mem_usage=$(( (effective_mem_usage * 100) / total_mem ))
+        system_info="${system_info}RAM: $(effective_mem_usage) MiB\nZFS ARC: $(zfs_arc_mb) MiB\n\n"
         # Weitere Systeminformationen können hier hinzugefügt werden
 
         send_telegram_message "Systeminformationen:%0A${system_info}"
@@ -88,27 +101,39 @@ send_system_info() {
 }
 
 # Funktion zum Überprüfen und Senden einer regelmäßigen Statusnachricht
-check_and_send_status_message() {
-    local interval=${STATUS_INTERVAL:-3600}  # Standard: 3600 Sekunden (1 Stunde), wenn nicht anders definiert
-    local last_status_file="$STATE_DIR/last_status_time"
+send_heartbeat_message() {
+    local interval=${STATUS_INTERVAL:-3600} # Standard: 3600 Sekunden (1 Stunde), wenn nicht anders definiert
+    local last_heartbeat_file="$STATE_DIR/last_heartbeat_time"
     local current_time=$(date +%s)
-    local status_message=""
 
-    # Überprüfen, wann die letzte Statusnachricht gesendet wurde
-    if [ -f "$last_status_file" ]; then
-        local last_status_time=$(cat "$last_status_file")
-        local time_diff=$((current_time - last_status_time))
-        if [ "$time_diff" -ge "$interval" ]; then
-            status_message="ℹ️ Das Überwachungsskript läuft noch.\n"
-            echo "$current_time" > "$last_status_file"
-        fi
-    else
-        # Wenn die Datei nicht existiert, Statusnachricht senden und Datei erstellen
-        status_message="ℹ️ Das Überwachungsskript läuft noch.\n"
-        echo "$current_time" > "$last_status_file"
+    # Überprüfen, ob die Datei existiert, und erstellen, falls nicht
+    if [ ! -f "$last_heartbeat_file" ]; then
+        echo "$current_time" > "$last_heartbeat_file"
     fi
 
-    echo "$status_message"
+    local last_heartbeat_time=$(cat "$last_heartbeat_file")
+    local time_diff=$((current_time - last_heartbeat_time))
+    if [ "$time_diff" -ge "$interval" ]; then
+        local heartbeat_message="ℹ️ Das Überwachungsskript läuft noch."
+        send_telegram_message "$heartbeat_message"
+        echo "$current_time" > "$last_heartbeat_file"
+    fi
+}
+
+# Funktion zur Echtzeitüberwachung von syslog
+# Funktion zur Echtzeitüberwachung von syslog
+monitor_syslog() {
+    tail -f /var/log/syslog | while read -r line; do
+        # Überspringe leere Zeilen
+        if [ -z "$line" ]; then
+            continue
+        fi
+
+        # Überprüfe, ob die Zeile einen Fehler oder eine Warnung enthält
+        if echo "$line" | grep -qi -E "error|warning"; then
+            send_telegram_message "Syslog-Alarm: $line"
+        fi
+    done
 }
 
 # Funktion zum Prüfen der Proxmox-Dienste
@@ -430,13 +455,29 @@ check_system_resources() {
         alerts="${alerts}⚠️ CPU-Auslastung: ${cpu_usage}%\n"
     fi
     
+    # Gesamt-RAM-Nutzung ermitteln
+    total_mem=$(free -m | awk '/^Mem:/ {print $2}')
+
+    # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
+    zfs_arc=$(arc_summary | grep "ARC Size" | awk '{print $3, $4}')
+    zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
+    zfs_arc_unit=$(echo $zfs_arc | awk '{print $2}')
+
+    # Einheit erkennen und in MiB umrechnen
+    if [ "$zfs_arc_unit" == "GiB" ]; then
+        zfs_arc_mb=$(echo "$zfs_arc_value * 1024" | bc)
+    elif [ "$zfs_arc_unit" == "MiB" ]; then
+        zfs_arc_mb=$zfs_arc_value
+    else
+        echo "Unbekannte Einheit: $zfs_arc_unit"
+        exit 1
+    fi
+
+    # Effektive RAM-Nutzung berechnen
+    effective_mem_usage=$((total_mem - zfs_arc_mb))
+
     # RAM-Auslastung
-    local mem_total
-    local mem_used
-    local mem_usage
-    mem_total=$(free -m | awk '/Mem:/ {print $2}')
-    mem_used=$(free -m | awk '/Mem:/ {print $3}')
-    mem_usage=$(( (mem_used * 100) / mem_total ))
+    mem_usage=$(( (effective_mem_usage * 100) / total_mem ))
     if [ "$mem_usage" -gt "$RAM_THRESHOLD" ]; then
         alerts="${alerts}⚠️ RAM-Auslastung: ${mem_usage}%\n"
     fi
@@ -488,30 +529,33 @@ main() {
     send_system_info
 
     # Statusnachricht überprüfen und senden
-    alerts+=$(check_and_send_status_message)
+    send_heartbeat_message
 
-    # Bestehende Checks beibehalten
-    echo "check_system_resources"
+    # Checks in Threads starten
+    check_system_resources &
+    check_cpu_temp &
+    check_smart_status &
+    check_zfs_status &
+    check_pve_services &
+    check_vms_and_containers &
+    check_backups &
+    check_storage_performance &
+    check_services &
+
+    # Auf alle Hintergrundprozesse warten
+    wait
+
+    # Alerts sammeln
     alerts+=$(check_system_resources)
-    echo "check_cpu_temp"
     alerts+=$(check_cpu_temp)
-    echo "check_smart_status"
     alerts+=$(check_smart_status)
-    echo "check_zfs_status"
     alerts+=$(check_zfs_status)
-    echo "check_pve_services"
     alerts+=$(check_pve_services)
-    echo "check_vms_and_containers"
     alerts+=$(check_vms_and_containers)
-    echo "check_backups"
     alerts+=$(check_backups)
-    echo "check_storage_performance"
     alerts+=$(check_storage_performance)
-    echo "check_services"
     alerts+=$(check_services)
-    echo "all checks done. Alerts:"
-    echo $alerts
-
+    
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
     if [ ! -z "$alerts" ]; then
         if [ ! -f "$TEMP_FILE" ] || [ "$(cat "$TEMP_FILE")" != "$alerts" ]; then
@@ -526,6 +570,12 @@ main() {
 
 # Aufräumen alter Logs (älter als 7 Tage)
 find "$LOG_FILE" -mtime +7 -delete 2>/dev/null
+
+# Hello-Nachricht als Zeichen, dass das Script neu gestartet wurde
+send_hello
+
+# Echtzeitüberwachung von syslog starten
+monitor_syslog &
 
 # Endlosschleife mit Schlafintervall
 while true; do
