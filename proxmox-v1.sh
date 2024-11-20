@@ -465,9 +465,9 @@ check_system_resources() {
 
     # Einheit erkennen und in MiB umrechnen
     if [ "$zfs_arc_unit" == "GiB" ]; then
-        zfs_arc_mb=$(echo "$zfs_arc_value * 1024" | bc)
+        zfs_arc_mb=$(echo "scale=2; $zfs_arc_value * 1024" | bc)
     elif [ "$zfs_arc_unit" == "MiB" ]; then
-        zfs_arc_mb=$zfs_arc_value
+        zfs_arc_mb=$(echo "scale=2; $zfs_arc_value" | bc)
     else
         echo "Unbekannte Einheit: $zfs_arc_unit"
         exit 1
@@ -525,7 +525,6 @@ main() {
     local alerts=""
     
     # Systeminformationen überprüfen und senden
-    echo "send_system_info"
     send_system_info
 
     # Statusnachricht überprüfen und senden
