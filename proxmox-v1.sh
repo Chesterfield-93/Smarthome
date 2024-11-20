@@ -79,16 +79,16 @@ send_system_info() {
 
         # Einheit erkennen und in MiB umrechnen
         if [ "$zfs_arc_unit" == "GiB" ]; then
-            zfs_arc_mb=$(echo "scale=2; $zfs_arc_value * 1024" | bc)
+            zfs_arc_mb=$(echo "$zfs_arc_value * 1024" | bc -l)
         elif [ "$zfs_arc_unit" == "MiB" ]; then
-            zfs_arc_mb=$(echo "scale=2; $zfs_arc_value" | bc)
+            zfs_arc_mb=$(echo "$zfs_arc_value" | bc -l)
         else
             echo "Unbekannte Einheit: $zfs_arc_unit"
             exit 1
         fi
 
         # Effektive RAM-Nutzung berechnen
-        effective_mem_usage=$((total_mem - zfs_arc_mb))
+        effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc - 1)
 
         # RAM-Auslastung
         mem_usage=$(( (effective_mem_usage * 100) / total_mem ))
@@ -465,16 +465,16 @@ check_system_resources() {
 
     # Einheit erkennen und in MiB umrechnen
     if [ "$zfs_arc_unit" == "GiB" ]; then
-        zfs_arc_mb=$(echo "scale=2; $zfs_arc_value * 1024" | bc)
+        zfs_arc_mb=$(echo "$zfs_arc_value * 1024" | bc -l)
     elif [ "$zfs_arc_unit" == "MiB" ]; then
-        zfs_arc_mb=$(echo "scale=2; $zfs_arc_value" | bc)
+        zfs_arc_mb=$(echo "$zfs_arc_value" | bc -l)
     else
         echo "Unbekannte Einheit: $zfs_arc_unit"
         exit 1
     fi
 
     # Effektive RAM-Nutzung berechnen
-    effective_mem_usage=$((total_mem - zfs_arc_mb))
+    effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc - 1)
 
     # RAM-Auslastung
     mem_usage=$(( (effective_mem_usage * 100) / total_mem ))
