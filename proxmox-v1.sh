@@ -3,7 +3,7 @@
 # proxmox_local_monitor.sh
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
 
-SCRIPT_VERSION="0.10"
+SCRIPT_VERSION="0.11"
 
 # Konfigurationsvariablen
 # Laden der parameters Datei
@@ -74,6 +74,7 @@ send_system_info() {
 
         # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
         zfs_arc=$(arc_summary | grep "ARC Size" | awk '{print $3, $4}')
+        echo "$zfs_arc"
         zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
         zfs_arc_unit=$(echo $zfs_arc | awk '{print $2}')
 
