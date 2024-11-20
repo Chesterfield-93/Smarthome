@@ -73,8 +73,7 @@ send_system_info() {
         total_mem=$(free -m | awk '/^Mem:/ {print $2}')
 
         # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
-        zfs_arc=$(arc_summary | grep "ARC Size" | awk '{print $3, $4}')
-        echo "$zfs_arc"
+        zfs_arc=$(arc_summary | grep "ARC size" | awk '{print $6, $7}')
         zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
         zfs_arc_unit=$(echo $zfs_arc | awk '{print $2}')
 
@@ -460,7 +459,7 @@ check_system_resources() {
     total_mem=$(free -m | awk '/^Mem:/ {print $2}')
 
     # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
-    zfs_arc=$(arc_summary | grep "ARC Size" | awk '{print $3, $4}')
+    zfs_arc=$(arc_summary | grep "ARC size" | awk '{print $6, $7}')
     zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
     zfs_arc_unit=$(echo $zfs_arc | awk '{print $2}')
 
