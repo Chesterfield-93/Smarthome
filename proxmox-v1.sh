@@ -3,7 +3,7 @@
 # proxmox_local_monitor.sh
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
 
-SCRIPT_VERSION="0.11"
+SCRIPT_VERSION="0.12"
 
 # Konfigurationsvariablen
 # Laden der parameters Datei
@@ -79,9 +79,9 @@ send_system_info() {
 
         # Einheit erkennen und in MiB umrechnen
         if [ "$zfs_arc_unit" == "GiB" ]; then
-            zfs_arc_mb=$(echo "$zfs_arc_value * 1024" | bc)
+            zfs_arc_mb=$(echo "scale=2; $zfs_arc_value * 1024" | bc)
         elif [ "$zfs_arc_unit" == "MiB" ]; then
-            zfs_arc_mb=$zfs_arc_value
+            zfs_arc_mb=$(echo "scale=2; $zfs_arc_value" | bc)
         else
             echo "Unbekannte Einheit: $zfs_arc_unit"
             exit 1
