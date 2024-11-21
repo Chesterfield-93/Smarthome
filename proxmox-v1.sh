@@ -128,7 +128,12 @@ monitor_syslog() {
         if [ -z "$line" ]; then
             continue
         fi
-
+        
+        # Filtere spezifische Log-Nachrichten, die vom Skript selbst erzeugt werden
+        if echo "$line" | grep -q "proxmox-monitor.sh"; then
+          continue
+        fi
+        
         # Überprüfe, ob die Zeile einen Fehler oder eine Warnung enthält
         if echo "$line" | grep -qi -E "error|warning"; then
             send_telegram_message "Syslog-Alarm: $line"
