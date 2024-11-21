@@ -51,7 +51,8 @@ send_system_info() {
 
     # Überprüfen, ob die Datei existiert, und erstellen, falls nicht
     if [ ! -f "$last_info_file" ]; then
-        echo "$current_time" > "$last_info_file"
+        new_time=$((current_time - interval - 1))
+        echo "$new_time" > "$last_info_file"
     fi
 
     local last_info_time=$(cat "$last_info_file")
@@ -108,7 +109,9 @@ send_heartbeat_message() {
 
     # Überprüfen, ob die Datei existiert, und erstellen, falls nicht
     if [ ! -f "$last_heartbeat_file" ]; then
-        echo "$current_time" > "$last_heartbeat_file"
+        # Neuen Zeitstempel berechnen (current_time - STATUS_INTERVAL - 1)
+        new_time=$((current_time - interval - 1))
+        echo "$new_time" > "$last_heartbeat_file"
     fi
 
     local last_heartbeat_time=$(cat "$last_heartbeat_file")
@@ -120,7 +123,6 @@ send_heartbeat_message() {
     fi
 }
 
-# Funktion zur Echtzeitüberwachung von syslog
 # Funktion zur Echtzeitüberwachung von syslog
 monitor_syslog() {
     tail -f /var/log/syslog | while read -r line; do
