@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Click Effect</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            position: relative;
+        }
+        .emoji {
+            position: absolute;
+            font-size: 2rem;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+<script>
+    const emojis = ['😊', '😂', '😍', '😎', '🥳', '🤩', '👏', '🙌', '👍', '🎉'];
+    const gravity = 0.5;
+    const friction = 0.95;
+    const bounceFactor = -0.7;
+    const emojiElements = [];
+
+    document.addEventListener('click', (event) => {
+        const count = Math.floor(Math.random() * 10);
+        for (let i = 0; i < count; i++) {
+            createEmoji(event.clientX, event.clientY);
+        }
+    });
+
+    function createEmoji(x, y) {
+        const emojiElement = document.createElement('div');
+        emojiElement.classList.add('emoji');
+        emojiElement.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        emojiElement.style.left = `${x}px`;
+        emojiElement.style.top = `${y}px`;
+        document.body.appendChild(emojiElement);
+
+        let velocityX = (Math.random() - 0.5) * 10;
+        let velocityY = -Math.random() * 10;
+        let scale = Math.random() * 0.5 + 0.5;
+        emojiElement.style.transform = `scale(${scale})`;
+
+        const emojiData = { element: emojiElement, velocityX, velocityY, x, y, scale };
+        emojiElements.push(emojiData);
+
+        function animate() {
+            updatePosition(emojiData);
+            handleCollisions(emojiData);
+            applyGravityAndFriction(emojiData);
+
+            emojiElement.style.left = `${emojiData.x}px`;
+            emojiElement.style.top = `${emojiData.y}px`;
+
+            if (Math.abs(emojiData.velocityX) < 0.1 && Math.abs(emojiData.velocityY) < 0.1 && emojiData.y > window.innerHeight) {
+                document.body.removeChild(emojiElement);
+                emojiElements.splice(emojiElements.indexOf(emojiData), 1);
+            } else {
+                requestAnimationFrame(animate);
+            }
+        }
+
+        animate();
+    }
+
+    function updatePosition(emoji) {
+        emoji.x += emoji.velocityX;
+        emoji.y += emoji.velocityY;
+    }
+
+    function handleCollisions(emoji) {
+        for (let other of emojiElements) {
+            if (emoji !== other) {
+                const dx = other.x - emoji.x;
+                const dy = other.y - emoji.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = (emoji.scale + other.scale) * 16; // Assuming font-size: 2rem
+
+                if (distance < minDistance) {
+                    const angle = Math.atan2(dy, dx);
+                    const sine = Math.sin(angle);
+                    const cosine = Math.cos(angle);
+
+                    const x1 = 0;
+                    const y1 = 0;
+                    const x2 = dx * cosine + dy * sine;
+
+                    const vx1 = emoji.velocityX * cosine + emoji.velocityY * sine;
+                    const vy1 = emoji.velocityX * sine - emoji.velocityY * cosine;
+                    const vx2 = other.velocityX * cosine + other.velocityY * sine;
+                    const vy2 = other.velocityX * sine - other.velocityY * cosine;
+
+                    const m1 = emoji.scale;
+                    const m2 = other.scale;
+
+                    const vx1Final = ((m1 - m2) * vx1 + 2 * m2 * vx2) / (m1 + m2);
+                    const vx2Final = (2 * m1 * vx1 + (m2 - m1) * vx2) / (m1 + m2);
+
+                    emoji.velocityX = vx1Final * cosine - vy1 * sine;
+                    emoji.velocityY = vx1Final * sine + vy1 * cosine;
+                    other.velocityX = vx2Final * cosine - vy2 * sine;
+                    other.velocityY = vx2Final * sine + vy2 * cosine;
+
+                    const overlap = 0.5 * (minDistance - distance);
+                    emoji.x -= overlap * cosine;
+                    emoji.y -= overlap * sine;
+                    other.x += overlap * cosine;
+                    other.y += overlap * sine;
+                }
+            }
+        }
+    }
+
+    function applyGravityAndFriction(emoji) {
+        emoji.velocityY += gravity;
+        emoji.velocityX *= friction;
+        emoji.velocityY *= friction;
+
+        // Check for collision with bottom boundary
+        if (emoji.y + emoji.element.offsetHeight >= window.innerHeight) {
+            emoji.y = window.innerHeight - emoji.element.offsetHeight;
+            emoji.velocityY *= bounceFactor;
+        }
+
+        // Check for collision with left and right boundaries
+        if (emoji.x <= 0) {
+            emoji.x = 0;
+            emoji.velocityX *= bounceFactor;
+        } else if (emoji.x + emoji.element.offsetWidth >= window.innerWidth) {
+            emoji.x = window.innerWidth - emoji.element.offsetWidth;
+            emoji.velocityX *= bounceFactor;
+        }
+    }
+</script>
+</body>
+</html>
