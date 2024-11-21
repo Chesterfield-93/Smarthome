@@ -8,7 +8,7 @@ chmod +x /usr/local/bin/proxmox-monitor.sh
 systemctl daemon-reload
 systemctl stop proxmox-monitor.service
 rm /var/lib/proxmox_monitor/last_info_time
-rm /var/lib/proxmox_monitor/last_heartbeat_time
+rm /var/lib/proxmox_monitor/last_status_time
 systemctl start proxmox-monitor.service
 systemctl status proxmox-monitor.service
 

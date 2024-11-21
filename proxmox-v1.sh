@@ -548,6 +548,7 @@ main() {
 
     # Auf alle Hintergrundprozesse warten
     wait
+    echo "alle Checks erledigt"
 
     # Alerts sammeln
     alerts+=$(check_system_resources)
