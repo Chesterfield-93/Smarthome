@@ -89,11 +89,11 @@ send_system_info() {
         fi
 
         # Effektive RAM-Nutzung berechnen
-        effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc - 1)
+        effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc)
 
         # RAM-Auslastung
         mem_usage=$(( (effective_mem_usage * 100) / total_mem ))
-        system_info="${system_info}RAM: $(effective_mem_usage) MiB\nZFS ARC: $(zfs_arc_mb) MiB\n\n"
+        system_info="${system_info}RAM: ${effective_mem_usage} MiB\nZFS ARC: ${zfs_arc_mb} MiB\n\n"
         # Weitere Systeminformationen können hier hinzugefügt werden
 
         send_telegram_message "Systeminformationen:%0A${system_info}"
