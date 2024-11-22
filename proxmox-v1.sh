@@ -538,7 +538,7 @@ main() {
     send_heartbeat_message
 
     local pids=()
-  l ocal functions=()
+    local functions=()
 
     # Starte die Hintergrundprozesse und speichere ihre PIDs und Funktionsnamen
     check_system_resources & pids+=($!); functions+=("check_system_resources")
