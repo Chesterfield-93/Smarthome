@@ -44,64 +44,61 @@ send_hello() {
 
 # Funktion zum Senden von Systeminformationen in regelmäßigen Abständen
 send_system_info() {
-    local interval=${SYSTEM_INFO_INTERVAL:-86400}  # Standard: 86400 Sekunden (24 Stunden), wenn nicht anders definiert
-    local last_info_file="$STATE_DIR/last_info_time"
-    local current_time=$(date +%s)
-    local system_info=""
+  local interval=${SYSTEM_INFO_INTERVAL:-86400} # Standard: 86400 Sekunden (24 Stunden), wenn nicht anders definiert
+  local last_info_file="$STATE_DIR/last_info_time"
+  local current_time=$(date +%s)
+  local system_info=""
 
-    # Überprüfen, ob die Datei existiert, und erstellen, falls nicht
-    if [ ! -f "$last_info_file" ]; then
-        new_time=$((current_time - interval - 1))
-        echo "$new_time" > "$last_info_file"
+  # Überprüfen, ob die Datei existiert, und erstellen, falls nicht
+  if [ ! -f "$last_info_file" ]; then
+    new_time=$((current_time - interval - 1))
+    echo "$new_time" > "$last_info_file"
+  fi
+
+  local last_info_time=$(cat "$last_info_file")
+  local time_diff=$((current_time - last_info_time))
+
+  if [ "$time_diff" -ge "$interval" ]; then
+    # Sammeln der SMART-Daten der Festplatten
+    for disk in $(lsblk -dnp -o NAME); do
+      if smartctl -H "$disk" > /dev/null 2>&1; then
+        local smart_status
+        smart_status=$(smartctl -H "$disk" | grep -i "smart overall-health" | awk '{print $NF}')
+        local percentage_used
+        percentage_used=$(smartctl -A "$disk" | grep "Percentage Used" | awk '{print $10}' | tr -d '%')
+
+        system_info="${system_info}Festplatte: ${disk}\\nSMART-Status: ${smart_status}\\nPercentage Used: ${percentage_used}%\\n\\n"
+      fi
+    done
+
+    # Informationen über die RAM-Auslastung
+    # Gesamt-RAM-Nutzung ermitteln
+    total_mem=$(free -m | awk '/^Mem:/ {print $2}')
+    # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
+    zfs_arc=$(arc_summary | grep "ARC size" | awk '{print $6, $7}')
+    zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
+    zfs_arc_unit=$(echo $zfs_arc | awk '{print $2}')
+    # Einheit erkennen und in MiB umrechnen
+    if [ "$zfs_arc_unit" == "GiB" ]; then
+      zfs_arc_mb=$(echo "$zfs_arc_value * 1024" | bc -l)
+    elif [ "$zfs_arc_unit" == "MiB" ]; then
+      zfs_arc_mb=$(echo "$zfs_arc_value" | bc -l)
+    else
+      echo "Unbekannte Einheit: $zfs_arc_unit"
+      exit 1
     fi
+    # Berechnung der effektiven RAM-Nutzung
+    effective_mem_usage=$(echo "scale=2; $total_mem - $zfs_arc_mb" | bc)
+    # Berechnung der RAM-Auslastung in Prozent
+    mem_usage=$(echo "scale=2; ($effective_mem_usage * 100) / $total_mem" | bc)
+    # Systeminformationen zusammenstellen
+    system_info="${system_info}RAM: ${effective_mem_usage} MiB\\nZFS ARC: ${zfs_arc_mb} MiB\\nRAM-Auslastung: ${mem_usage}%\\n\\n"
 
-    local last_info_time=$(cat "$last_info_file")
-    local time_diff=$((current_time - last_info_time))
-    if [ "$time_diff" -ge "$interval" ]; then
-        # Sammeln der SMART-Daten der Festplatten
-        for disk in $(lsblk -dnp -o NAME); do
-            if smartctl -H "$disk" > /dev/null 2>&1; then
-                local smart_status
-                smart_status=$(smartctl -H "$disk" | grep -i "smart overall-health" | awk '{print $NF}')
-                local reallocated
-                reallocated=$(smartctl -A "$disk" | grep "Reallocated_Sector_Ct" | awk '{print $10}')
-                system_info="${system_info}Festplatte: ${disk}\nSMART-Status: ${smart_status}\nReallocated Sectors: ${reallocated}\n\n"
-            fi
-        done
+    # Weitere Systeminformationen können hier hinzugefügt werden
 
-        # Informationen über die RAM-Auslastung
-        # Gesamt-RAM-Nutzung ermitteln
-        total_mem=$(free -m | awk '/^Mem:/ {print $2}')
-
-        # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
-        zfs_arc=$(arc_summary | grep "ARC size" | awk '{print $6, $7}')
-        zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
-        zfs_arc_unit=$(echo $zfs_arc | awk '{print $2}')
-
-        # Einheit erkennen und in MiB umrechnen
-        if [ "$zfs_arc_unit" == "GiB" ]; then
-            zfs_arc_mb=$(echo "$zfs_arc_value * 1024" | bc -l)
-        elif [ "$zfs_arc_unit" == "MiB" ]; then
-            zfs_arc_mb=$(echo "$zfs_arc_value" | bc -l)
-        else
-            echo "Unbekannte Einheit: $zfs_arc_unit"
-            exit 1
-        fi
-
-        # Berechnung der effektiven RAM-Nutzung
-        effective_mem_usage=$(echo "scale=2; $total_mem - $zfs_arc_mb" | bc)
-
-        # Berechnung der RAM-Auslastung in Prozent
-        mem_usage=$(echo "scale=2; ($effective_mem_usage * 100) / $total_mem" | bc)
-
-        # Systeminformationen zusammenstellen
-        system_info="${system_info}RAM: ${effective_mem_usage} MiB\nZFS ARC: ${zfs_arc_mb} MiB\nRAM-Auslastung: ${mem_usage}%\n\n"
-
-        # Weitere Systeminformationen können hier hinzugefügt werden
-
-        send_telegram_message "Systeminformationen:%0A${system_info}"
-        echo "$current_time" > "$last_info_file"
-    fi
+    send_telegram_message "Systeminformationen:%0A${system_info}"
+    echo "$current_time" > "$last_info_file"
+  fi
 }
 
 # Funktion zum Überprüfen und Senden einer regelmäßigen Statusnachricht
@@ -140,7 +137,7 @@ monitor_syslog() {
         fi
         
         # Überprüfe, ob die Zeile einen Fehler oder eine Warnung enthält
-        if echo "$line" | grep -qi -E "error|warning"; then
+        if echo "$line" | grep -qi -E "error|warning|critical|alert|emergency|failed|unreachable|timeout|denied|unavailable|corrupt|panic"; then
             send_telegram_message "Syslog-Alarm: $line"
         fi
     done
@@ -403,24 +400,24 @@ check_cpu_temp() {
 
 # SMART-Status prüfen
 check_smart_status() {
-    local alerts=""
-    for disk in $(lsblk -dnp -o NAME); do
-        if smartctl -H "$disk" > /dev/null 2>&1; then
-            local smart_status
-            smart_status=$(smartctl -H "$disk" | grep -i "smart overall-health" | awk '{print $NF}')
-            local reallocated
-            reallocated=$(smartctl -A "$disk" | grep "Reallocated_Sector_Ct" | awk '{print $10}')
-            
-            if [ "$smart_status" != "PASSED" ]; then
-                alerts="${alerts}⚠️ SMART-Status für ${disk}: ${smart_status}\n"
-            fi
-            
-            if [ ! -z "$reallocated" ] && [ "$reallocated" -gt "$SMART_THRESHOLD" ]; then
-                alerts="${alerts}⚠️ Reallocated Sectors für ${disk}: ${reallocated}\n"
-            fi
-        fi
-    done
-    echo "$alerts"
+  local alerts=""
+  for disk in $(lsblk -dnp -o NAME); do
+    if smartctl -H "$disk" > /dev/null 2>&1; then
+      local smart_status
+      smart_status=$(smartctl -H "$disk" | grep -i "smart overall-health" | awk '{print $NF}')
+      local percentage_used
+      percentage_used=$(smartctl -A "$disk" | grep "Percentage Used" | awk '{print $10}' | tr -d '%')
+
+      if [ "$smart_status" != "PASSED" ]; then
+        alerts="${alerts}⚠️ SMART-Status für ${disk}: ${smart_status}\\n"
+      fi
+
+      if [ ! -z "$percentage_used" ] && [ "$percentage_used" -gt "$SMART_THRESHOLD" ]; then
+        alerts="${alerts}⚠️ Percentage Used für ${disk}: ${percentage_used}%\\n"
+      fi
+    fi
+  done
+  echo "$alerts"
 }
 
 # ZFS-Status prüfen

@@ -1,8 +1,8 @@
 # Konfigurationsvariablen
 HOSTNAME=$(hostname)
 SLEEP_INTERVAL=120      # Script-Zyklus in Sekunden
-STATUS_INTERVAL=$((1 * 3600)) # Info-Zyklus in Stunden vor dem *
-SYSTEM_INFO_INTERVAL=$((1 * 86400)) # Info-Zyklus in Tagen vor dem *
+STATUS_INTERVAL=3600 # Info-Zyklus in Stunden * 3600
+SYSTEM_INFO_INTERVAL=86400 # Info-Zyklus in Tagen * 86400
 TIMEOUT=10 # Timeout für Hintergrundchecks in Sekunden
 
 # Schwellwerte System
@@ -11,7 +11,7 @@ RAM_THRESHOLD=80        # in Prozent
 STORAGE_THRESHOLD=80    # in Prozent
 INODE_THRESHOLD=80      # in Prozent
 TEMP_THRESHOLD=65       # in Grad Celsius
-SMART_THRESHOLD=10      # Anzahl reallocated sectors
+SMART_THRESHOLD=10      # Schwellwert Percentage Used
 ZFS_SCRUB_DAYS=30       # Maximales Alter des letzten Scrubs
 MAX_BACKUP_AGE_HOURS=26     # Maximales Alter des letzten Backups
 
