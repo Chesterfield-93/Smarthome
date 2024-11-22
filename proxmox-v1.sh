@@ -65,7 +65,7 @@ send_system_info() {
         local smart_status
         smart_status=$(smartctl -H "$disk" | grep -i "smart overall-health" | awk '{print $NF}')
         local percentage_used
-        percentage_used=$(smartctl -A "$disk" | grep "Percentage Used" | awk '{print $10}' | tr -d '%')
+        percentage_used=$(smartctl -A "$disk" | grep "Percentage Used" | awk '{print $3}' | tr -d '%')
 
         system_info="${system_info}Festplatte: ${disk}\\nSMART-Status: ${smart_status}\\nPercentage Used: ${percentage_used}%\\n\\n"
       fi
@@ -406,7 +406,7 @@ check_smart_status() {
       local smart_status
       smart_status=$(smartctl -H "$disk" | grep -i "smart overall-health" | awk '{print $NF}')
       local percentage_used
-      percentage_used=$(smartctl -A "$disk" | grep "Percentage Used" | awk '{print $10}' | tr -d '%')
+      percentage_used=$(smartctl -A "$disk" | grep "Percentage Used" | awk '{print $3}' | tr -d '%')
 
       if [ "$smart_status" != "PASSED" ]; then
         alerts="${alerts}⚠️ SMART-Status für ${disk}: ${smart_status}\\n"
