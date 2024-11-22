@@ -389,7 +389,7 @@ check_storage_performance() {
 
 # CPU-Temperatur prüfen
 check_cpu_temp() {
-    if [ -f /sys/class/thermal/thermal_zone0/temp ]; then
+    if [ -f /sys/class/hwmon/hwmon5/temp1_input ]; then
         local temp
         temp=$(( $(cat /sys/class/hwmon/hwmon5/temp1_input) / 1000))
         if [ "$temp" -gt "$TEMP_THRESHOLD" ]; then
@@ -573,10 +573,11 @@ main() {
             log "$alerts"
         fi
     fi
+
+    # Aufräumen alter Logs (älter als 7 Tage)
+    find "$LOG_FILE" -mtime +7 -delete 2>/dev/null
 }
 
-# Aufräumen alter Logs (älter als 7 Tage)
-find "$LOG_FILE" -mtime +7 -delete 2>/dev/null
 
 # Hello-Nachricht als Zeichen, dass das Script neu gestartet wurde
 send_hello
