@@ -244,8 +244,8 @@ check_vms_and_containers() {
     while IFS= read -r line; do
         local ctid status name
         ctid=$(echo "$line" | awk '{print $1}')
-        status=$(echo "$line" | awk '{print $2}')
-        name=$(echo "$line" | awk '{print $3}')
+        status=$(echo "$line" | awk '{print $3}')
+        name=$(echo "$line" | awk '{print $2}')
         
         # Container-Status tracken
         local prev_status
