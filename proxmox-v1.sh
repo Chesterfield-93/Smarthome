@@ -552,7 +552,7 @@ main() {
     check_services & pids+=($!); functions+=("check_services")
 
     # Warte auf die Hintergrundprozesse mit Timeout
-    timeout $timeout_duration wait
+    timeout $TIMEOUT wait
 
     # Überprüfe, ob das Timeout erreicht wurde und beende noch laufende Prozesse
     for i in "${!pids[@]}"; do
