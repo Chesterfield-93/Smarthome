@@ -3,7 +3,7 @@
 # proxmox_local_monitor.sh
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
 
-SCRIPT_VERSION="0.12"
+SCRIPT_VERSION="0.13"
 
 # Konfigurationsvariablen
 # Laden der parameters Datei
@@ -73,7 +73,7 @@ send_system_info() {
 
     # Informationen über die RAM-Auslastung
     # Gesamt-RAM-Nutzung ermitteln
-    total_mem=$(free -m | awk '/^Mem:/ {print $2}')
+    total_mem=$(free -m | awk '/^Mem:/ {print $3}')
     # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
     zfs_arc=$(arc_summary | grep "ARC size" | awk '{print $6, $7}')
     zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
@@ -463,7 +463,7 @@ check_system_resources() {
     fi
     
     # Gesamt-RAM-Nutzung ermitteln
-    total_mem=$(free -m | awk '/^Mem:/ {print $2}')
+    total_mem=$(free -m | awk '/^Mem:/ {print $3}')
 
     # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
     zfs_arc=$(arc_summary | grep "ARC size" | awk '{print $6, $7}')
