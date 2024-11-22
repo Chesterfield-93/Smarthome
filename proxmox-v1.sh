@@ -537,20 +537,32 @@ main() {
     # Statusnachricht überprüfen und senden
     send_heartbeat_message
 
-    # Checks in Threads starten
-    check_system_resources &
-    check_cpu_temp &
-    check_smart_status &
-    check_zfs_status &
-    check_pve_services &
-    check_vms_and_containers &
-    check_backups &
-    check_storage_performance &
-    check_services &
+    local pids=()
+  l ocal functions=()
 
-    # Auf alle Hintergrundprozesse warten
-    wait
-    echo "alle Checks erledigt"
+    # Starte die Hintergrundprozesse und speichere ihre PIDs und Funktionsnamen
+    check_system_resources & pids+=($!); functions+=("check_system_resources")
+    check_cpu_temp & pids+=($!); functions+=("check_cpu_temp")
+    check_smart_status & pids+=($!); functions+=("check_smart_status")
+    check_zfs_status & pids+=($!); functions+=("check_zfs_status")
+    check_pve_services & pids+=($!); functions+=("check_pve_services")
+    check_vms_and_containers & pids+=($!); functions+=("check_vms_and_containers")
+    check_backups & pids+=($!); functions+=("check_backups")
+    check_storage_performance & pids+=($!); functions+=("check_storage_performance")
+    check_services & pids+=($!); functions+=("check_services")
+
+    # Warte auf die Hintergrundprozesse mit Timeout
+    timeout $timeout_duration wait
+
+    # Überprüfe, ob das Timeout erreicht wurde und beende noch laufende Prozesse
+    for i in "${!pids[@]}"; do
+        pid=${pids[$i]}
+        function_name=${functions[$i]}
+        if kill -0 $pid 2>/dev/null; then
+        echo "Prozess $pid ($function_name) läuft noch, wird beendet..."
+        kill -9 $pid
+        fi
+    done
 
     # Alerts sammeln
     alerts+=$(check_system_resources)
