@@ -153,7 +153,9 @@ check_system_resources() {
     if [ "$cpu_usage" -gt "$CPU_THRESHOLD" ]; then
         alerts="${alerts}⚠️ CPU-Auslastung: ${cpu_usage}%\n"
     fi
-    
+
+    return
+
     # Gesamt-RAM-Nutzung ermitteln
     total_mem=$(free -m | awk '/^Mem:/ {print $3}')
 
