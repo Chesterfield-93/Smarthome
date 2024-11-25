@@ -206,6 +206,103 @@ check_system_resources() {
     echo "$alerts"
 }
 
+# CPU-Temperatur prüfen
+check_cpu_temp() {
+    if [ -f /sys/class/hwmon/hwmon5/temp1_input ]; then
+        local temp
+        temp=$(( $(cat /sys/class/hwmon/hwmon5/temp1_input) / 1000))
+        if [ "$temp" -gt "$TEMP_THRESHOLD" ]; then
+            echo "⚠️ CPU-Temperatur: ${temp}°C"
+        fi
+    fi
+}
+
+# Funktion zum Prüfen der Storage Performance
+check_storage_performance() {
+    local alerts=""
+    local test_file="/var/tmp/iostat_test"
+    
+    # IO-Stat Installation prüfen
+    if ! command -v iostat >/dev/null; then
+        apt-get update >/dev/null && apt-get install -y sysstat >/dev/null
+    fi
+    
+    # Storage-Performance testen
+    if command -v iostat >/dev/null; then
+        local high_io_devices=""
+        while IFS= read -r line; do
+            local device
+            local await
+            device=$(echo "$line" | awk '{print $1}')
+            await=$(echo "$line" | awk '{print $10}')
+            
+            if [[ "$await" =~ ^[0-9]+(\.[0-9]+)?$ ]] && [ $(echo "$await > 100" | bc -l) -eq 1 ]; then
+                high_io_devices="${high_io_devices}${device} (${await}ms) "
+            fi
+
+        done < <(iostat -x 1 2 | tail -n +4)
+        
+        if [ ! -z "$high_io_devices" ]; then
+            alerts="${alerts}⚠️ Hohe IO-Latenz auf: ${high_io_devices}\n"
+        fi
+    fi
+    
+    echo "$alerts"
+}
+
+# SMART-Status prüfen
+check_smart_status() {
+  local alerts=""
+  for disk in $(lsblk -dnp -o NAME); do
+    if smartctl -H "$disk" > /dev/null 2>&1; then
+      local smart_status
+      smart_status=$(smartctl -H "$disk" | grep -i "smart overall-health" | awk '{print $NF}')
+      local percentage_used
+      percentage_used=$(smartctl -A "$disk" | grep "Percentage Used" | awk '{print $3}' | tr -d '%')
+
+      if [ "$smart_status" != "PASSED" ]; then
+        alerts="${alerts}⚠️ SMART-Status für ${disk}: ${smart_status}\\n"
+      fi
+
+      if [ ! -z "$percentage_used" ] && [ "$percentage_used" -gt "$SMART_THRESHOLD" ]; then
+        alerts="${alerts}⚠️ Percentage Used für ${disk}: ${percentage_used}%\\n"
+      fi
+    fi
+  done
+  echo "$alerts"
+}
+
+# ZFS-Status prüfen
+check_zfs_status() {
+    local alerts=""
+    if command -v zpool > /dev/null; then
+        # Pool-Status prüfen
+        local pool_status
+        pool_status=$(zpool status | grep -E "state:|errors:")
+        
+        # Filtere den Status "state: ONLINE" und "errors: No known data errors" heraus
+        pool_status=$(echo "$pool_status" | grep -v -E "state: ONLINE|errors: No known data errors")
+
+        if [ ! -z "$pool_status" ]; then
+            alerts="${alerts}⚠️ ZFS-Pool-Probleme gefunden:\n${pool_status}\n"
+        fi
+
+        # Scrub-Alter prüfen
+        for pool in $(zpool list -H -o name); do
+            local scrub_age
+            scrub_age=$(zpool status "$pool" | grep "scan" | grep -oP "(?<=scrub on )[^)]+")
+            if [ ! -z "$scrub_age" ]; then
+                local days_since_scrub
+                days_since_scrub=$(( ( $(date +%s) - $(date -d "$scrub_age" +%s) ) / 86400 ))
+                if [ "$days_since_scrub" -gt "$ZFS_SCRUB_DAYS" ]; then
+                    alerts="${alerts}⚠️ Letzter ZFS Scrub für ${pool} ist ${days_since_scrub} Tage alt\n"
+                fi
+            fi
+        done
+    fi
+    echo "$alerts"
+}
+
 # Funktion zum Prüfen der Proxmox-Dienste
 check_pve_services() {
     local alerts=""
@@ -417,103 +514,6 @@ check_backups() {
     echo -e "$alerts"
 }
 
-# Funktion zum Prüfen der Storage Performance
-check_storage_performance() {
-    local alerts=""
-    local test_file="/var/tmp/iostat_test"
-    
-    # IO-Stat Installation prüfen
-    if ! command -v iostat >/dev/null; then
-        apt-get update >/dev/null && apt-get install -y sysstat >/dev/null
-    fi
-    
-    # Storage-Performance testen
-    if command -v iostat >/dev/null; then
-        local high_io_devices=""
-        while IFS= read -r line; do
-            local device
-            local await
-            device=$(echo "$line" | awk '{print $1}')
-            await=$(echo "$line" | awk '{print $10}')
-            
-            if [[ "$await" =~ ^[0-9]+(\.[0-9]+)?$ ]] && [ $(echo "$await > 100" | bc -l) -eq 1 ]; then
-                high_io_devices="${high_io_devices}${device} (${await}ms) "
-            fi
-
-        done < <(iostat -x 1 2 | tail -n +4)
-        
-        if [ ! -z "$high_io_devices" ]; then
-            alerts="${alerts}⚠️ Hohe IO-Latenz auf: ${high_io_devices}\n"
-        fi
-    fi
-    
-    echo "$alerts"
-}
-
-# CPU-Temperatur prüfen
-check_cpu_temp() {
-    if [ -f /sys/class/hwmon/hwmon5/temp1_input ]; then
-        local temp
-        temp=$(( $(cat /sys/class/hwmon/hwmon5/temp1_input) / 1000))
-        if [ "$temp" -gt "$TEMP_THRESHOLD" ]; then
-            echo "⚠️ CPU-Temperatur: ${temp}°C"
-        fi
-    fi
-}
-
-# SMART-Status prüfen
-check_smart_status() {
-  local alerts=""
-  for disk in $(lsblk -dnp -o NAME); do
-    if smartctl -H "$disk" > /dev/null 2>&1; then
-      local smart_status
-      smart_status=$(smartctl -H "$disk" | grep -i "smart overall-health" | awk '{print $NF}')
-      local percentage_used
-      percentage_used=$(smartctl -A "$disk" | grep "Percentage Used" | awk '{print $3}' | tr -d '%')
-
-      if [ "$smart_status" != "PASSED" ]; then
-        alerts="${alerts}⚠️ SMART-Status für ${disk}: ${smart_status}\\n"
-      fi
-
-      if [ ! -z "$percentage_used" ] && [ "$percentage_used" -gt "$SMART_THRESHOLD" ]; then
-        alerts="${alerts}⚠️ Percentage Used für ${disk}: ${percentage_used}%\\n"
-      fi
-    fi
-  done
-  echo "$alerts"
-}
-
-# ZFS-Status prüfen
-check_zfs_status() {
-    local alerts=""
-    if command -v zpool > /dev/null; then
-        # Pool-Status prüfen
-        local pool_status
-        pool_status=$(zpool status | grep -E "state:|errors:")
-        
-        # Filtere den Status "state: ONLINE" und "errors: No known data errors" heraus
-        pool_status=$(echo "$pool_status" | grep -v -E "state: ONLINE|errors: No known data errors")
-
-        if [ ! -z "$pool_status" ]; then
-            alerts="${alerts}⚠️ ZFS-Pool-Probleme gefunden:\n${pool_status}\n"
-        fi
-
-        # Scrub-Alter prüfen
-        for pool in $(zpool list -H -o name); do
-            local scrub_age
-            scrub_age=$(zpool status "$pool" | grep "scan" | grep -oP "(?<=scrub on )[^)]+")
-            if [ ! -z "$scrub_age" ]; then
-                local days_since_scrub
-                days_since_scrub=$(( ( $(date +%s) - $(date -d "$scrub_age" +%s) ) / 86400 ))
-                if [ "$days_since_scrub" -gt "$ZFS_SCRUB_DAYS" ]; then
-                    alerts="${alerts}⚠️ Letzter ZFS Scrub für ${pool} ist ${days_since_scrub} Tage alt\n"
-                fi
-            fi
-        done
-    fi
-    echo "$alerts"
-}
-
 # Dienste-Status prüfen
 check_services() {
     local alerts=""
@@ -567,12 +567,12 @@ main() {
     # Alerts sammeln
     alerts+=$(check_system_resources)
     alerts+=$(check_cpu_temp)
+    #alerts+=$(check_storage_performance)
     #alerts+=$(check_smart_status)
     #alerts+=$(check_zfs_status)
     #alerts+=$(check_pve_services)
     #alerts+=$(check_vms_and_containers)
     #alerts+=$(check_backups)
-    #alerts+=$(check_storage_performance)
     #alerts+=$(check_services)
     
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben

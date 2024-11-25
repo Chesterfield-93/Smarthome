@@ -8,9 +8,9 @@ TIMEOUT=10 # Timeout für Hintergrundchecks in Sekunden
 # Schwellwerte System
 CPU_THRESHOLD=80        # in Prozent 80
 RAM_THRESHOLD=80        # in Prozent 80
-STORAGE_THRESHOLD=30    # in Prozent 60
-INODE_THRESHOLD=80      # in Prozent
-TEMP_THRESHOLD=65       # in Grad Celsius
+STORAGE_THRESHOLD=60    # in Prozent 60
+INODE_THRESHOLD=60      # in Prozent 60
+TEMP_THRESHOLD=20       # in Grad Celsius 65
 SMART_THRESHOLD=10      # Schwellwert Percentage Used
 ZFS_SCRUB_DAYS=30       # Maximales Alter des letzten Scrubs
 MAX_BACKUP_AGE_HOURS=26     # Maximales Alter des letzten Backups
