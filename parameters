@@ -7,7 +7,7 @@ TIMEOUT=10 # Timeout für Hintergrundchecks in Sekunden
 
 # Schwellwerte System
 CPU_THRESHOLD=80        # in Prozent
-RAM_THRESHOLD=80        # in Prozent
+RAM_THRESHOLD=40        # in Prozent 80
 STORAGE_THRESHOLD=80    # in Prozent
 INODE_THRESHOLD=80      # in Prozent
 TEMP_THRESHOLD=65       # in Grad Celsius

@@ -143,6 +143,69 @@ monitor_syslog() {
     done
 }
 
+# System-Ressourcen prüfen
+check_system_resources() {
+    local alerts=""
+    
+    # CPU-Auslastung
+    local cpu_usage
+    cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d. -f1)
+    if [ "$cpu_usage" -gt "$CPU_THRESHOLD" ]; then
+        alerts="${alerts}⚠️ CPU-Auslastung: ${cpu_usage}%\n"
+    fi
+    
+    # Gesamt-RAM-Nutzung ermitteln
+    total_mem=$(free -m | awk '/^Mem:/ {print $3}')
+
+    # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
+    zfs_arc=$(arc_summary | grep "ARC size" | awk '{print $6, $7}')
+    zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
+    zfs_arc_unit=$(echo $zfs_arc | awk '{print $2}')
+
+    # Einheit erkennen und in MiB umrechnen
+    if [ "$zfs_arc_unit" == "GiB" ]; then
+        zfs_arc_mb=$(echo "$zfs_arc_value * 1024" | bc -l)
+    elif [ "$zfs_arc_unit" == "MiB" ]; then
+        zfs_arc_mb=$(echo "$zfs_arc_value" | bc -l)
+    else
+        echo "Unbekannte Einheit: $zfs_arc_unit"
+        exit 1
+    fi
+
+    # Effektive RAM-Nutzung berechnen
+    effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc - 1)
+
+    # RAM-Auslastung
+    mem_usage=$(( (effective_mem_usage * 100) / total_mem ))
+    if [ "$mem_usage" -gt "$RAM_THRESHOLD" ]; then
+        alerts="${alerts}⚠️ RAM-Auslastung: ${mem_usage}%\n"
+    fi
+    
+    # Speicherplatz und Inodes
+    while IFS= read -r line; do
+        local usage
+        local mount
+        usage=$(echo "$line" | awk '{print $5}' | cut -d% -f1)
+        mount=$(echo "$line" | awk '{print $6}')
+        if [ "$usage" -gt "$STORAGE_THRESHOLD" ]; then
+            alerts="${alerts}⚠️ Speicherplatz auf ${mount}: ${usage}%\n"
+        fi
+    done < <(df -h | grep -vE '^Filesystem|tmpfs|cdrom|udev')
+    
+    while IFS= read -r line; do
+        local inode_usage
+        local mount
+        inode_usage=$(echo "$line" | awk '{print $5}' | cut -d% -f1)
+
+        mount=$(echo "$line" | awk '{print $6}')
+        if [[ "$inode_usage" =~ ^[0-9]+$ ]] && [ "$inode_usage" -gt "$INODE_THRESHOLD" ]; then
+            alerts="${alerts}⚠️ Inode-Nutzung auf ${mount}: ${inode_usage}%\n"
+        fi
+    done < <(df -i | grep -vE '^Filesystem|tmpfs|cdrom|udev')
+    
+    echo "$alerts"
+}
+
 # Funktion zum Prüfen der Proxmox-Dienste
 check_pve_services() {
     local alerts=""
@@ -448,69 +511,6 @@ check_zfs_status() {
             fi
         done
     fi
-    echo "$alerts"
-}
-
-# System-Ressourcen prüfen
-check_system_resources() {
-    local alerts=""
-    
-    # CPU-Auslastung
-    local cpu_usage
-    cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d. -f1)
-    if [ "$cpu_usage" -gt "$CPU_THRESHOLD" ]; then
-        alerts="${alerts}⚠️ CPU-Auslastung: ${cpu_usage}%\n"
-    fi
-    
-    # Gesamt-RAM-Nutzung ermitteln
-    total_mem=$(free -m | awk '/^Mem:/ {print $3}')
-
-    # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
-    zfs_arc=$(arc_summary | grep "ARC size" | awk '{print $6, $7}')
-    zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
-    zfs_arc_unit=$(echo $zfs_arc | awk '{print $2}')
-
-    # Einheit erkennen und in MiB umrechnen
-    if [ "$zfs_arc_unit" == "GiB" ]; then
-        zfs_arc_mb=$(echo "$zfs_arc_value * 1024" | bc -l)
-    elif [ "$zfs_arc_unit" == "MiB" ]; then
-        zfs_arc_mb=$(echo "$zfs_arc_value" | bc -l)
-    else
-        echo "Unbekannte Einheit: $zfs_arc_unit"
-        exit 1
-    fi
-
-    # Effektive RAM-Nutzung berechnen
-    effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc - 1)
-
-    # RAM-Auslastung
-    mem_usage=$(( (effective_mem_usage * 100) / total_mem ))
-    if [ "$mem_usage" -gt "$RAM_THRESHOLD" ]; then
-        alerts="${alerts}⚠️ RAM-Auslastung: ${mem_usage}%\n"
-    fi
-    
-    # Speicherplatz und Inodes
-    while IFS= read -r line; do
-        local usage
-        local mount
-        usage=$(echo "$line" | awk '{print $5}' | cut -d% -f1)
-        mount=$(echo "$line" | awk '{print $6}')
-        if [ "$usage" -gt "$STORAGE_THRESHOLD" ]; then
-            alerts="${alerts}⚠️ Speicherplatz auf ${mount}: ${usage}%\n"
-        fi
-    done < <(df -h | grep -vE '^Filesystem|tmpfs|cdrom|udev')
-    
-    while IFS= read -r line; do
-        local inode_usage
-        local mount
-        inode_usage=$(echo "$line" | awk '{print $5}' | cut -d% -f1)
-
-        mount=$(echo "$line" | awk '{print $6}')
-        if [[ "$inode_usage" =~ ^[0-9]+$ ]] && [ "$inode_usage" -gt "$INODE_THRESHOLD" ]; then
-            alerts="${alerts}⚠️ Inode-Nutzung auf ${mount}: ${inode_usage}%\n"
-        fi
-    done < <(df -i | grep -vE '^Filesystem|tmpfs|cdrom|udev')
-    
     echo "$alerts"
 }
 
