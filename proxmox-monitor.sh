@@ -542,7 +542,7 @@ main() {
     local functions=()
 
     # Starte die Hintergrundprozesse und speichere ihre PIDs und Funktionsnamen
-    check_system_resources & pid=$!; pids+=($pid); functions+=("check_system_resources")
+    #check_system_resources & pid=$!; pids+=($pid); functions+=("check_system_resources")
     #check_cpu_temp & pids+=($!); functions+=("check_cpu_temp")
     #check_smart_status & pids+=($!); functions+=("check_smart_status")
     #check_zfs_status & pids+=($!); functions+=("check_zfs_status")
@@ -553,28 +553,28 @@ main() {
     #check_services & pids+=($!); functions+=("check_services")
 
     # Warte auf die Hintergrundprozesse mit Timeout
-    timeout $TIMEOUT bash -c "wait ${pids[@]}"
+    #timeout $TIMEOUT bash -c "wait ${pids[@]}"
 
     # Überprüfe, ob das Timeout erreicht wurde und beende noch laufende Prozesse
-    for i in "${!pids[@]}"; do
-        pid=${pids[$i]}
-        function_name=${functions[$i]}
-        if kill -0 $pid 2>/dev/null; then
-        echo "Prozess $pid ($function_name) läuft noch, wird beendet..."
-        kill -9 $pid
-        fi
-    done
+    #for i in "${!pids[@]}"; do
+    #    pid=${pids[$i]}
+    #    function_name=${functions[$i]}
+    #    if kill -0 $pid 2>/dev/null; then
+    #    echo "Prozess $pid ($function_name) läuft noch, wird beendet..."
+    #    kill -9 $pid
+    #    fi
+    #done
 
     # Alerts sammeln
     alerts+=$(check_system_resources)
-    #alerts+=$(check_cpu_temp)
-    #alerts+=$(check_smart_status)
-    #alerts+=$(check_zfs_status)
-    #alerts+=$(check_pve_services)
-    #alerts+=$(check_vms_and_containers)
-    #alerts+=$(check_backups)
-    #alerts+=$(check_storage_performance)
-    #alerts+=$(check_services)
+    alerts+=$(check_cpu_temp)
+    alerts+=$(check_smart_status)
+    alerts+=$(check_zfs_status)
+    alerts+=$(check_pve_services)
+    alerts+=$(check_vms_and_containers)
+    alerts+=$(check_backups)
+    alerts+=$(check_storage_performance)
+    alerts+=$(check_services)
     
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
     if [ ! -z "$alerts" ]; then
@@ -593,7 +593,6 @@ main() {
 
 
 # Hello-Nachricht als Zeichen, dass das Script neu gestartet wurde
-echo "send hello1"
 send_hello
 
 # Echtzeitüberwachung von syslog starten
