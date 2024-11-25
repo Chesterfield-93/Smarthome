@@ -147,17 +147,17 @@ monitor_syslog() {
 check_system_resources() {
     local alerts=""
     
-    # CPU-Auslastung
+    ## CPU-Auslastung
     local cpu_usage
     cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2 + $4}' | cut -d. -f1)
     if [ "$cpu_usage" -gt "$CPU_THRESHOLD" ]; then
         alerts="${alerts}⚠️ CPU-Auslastung: ${cpu_usage}%\n"
     fi
 
-    # Gesamt-RAM-Nutzung ermitteln
+    ## Gesamt-RAM-Nutzung ermitteln
     total_mem=$(free -m | awk '/^Mem:/ {print $3}')
 
-    # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
+    # Von ZFS belegten RAM-Speicher ermitteln und in MiB umrechnen
     zfs_arc=$(arc_summary | grep "ARC size" | awk '{print $6, $7}')
     zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
     zfs_arc_unit=$(echo $zfs_arc | awk '{print $2}')
@@ -177,12 +177,11 @@ check_system_resources() {
 
     # RAM-Auslastung
     mem_usage=$(echo "scale=0; ($effective_mem_usage * 100) / $total_mem" | bc)
-    echo $mem_usage
     if [ "$mem_usage" -gt "$RAM_THRESHOLD" ]; then
         alerts="${alerts}⚠️ RAM-Auslastung: ${mem_usage}%\n"
     fi
     
-    # Speicherplatz und Inodes
+    ## Speicherplatz und Inodes
     while IFS= read -r line; do
         local usage
         local mount

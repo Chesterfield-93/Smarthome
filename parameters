@@ -6,9 +6,9 @@ SYSTEM_INFO_INTERVAL=86400 # Info-Zyklus in Tagen * 86400
 TIMEOUT=10 # Timeout für Hintergrundchecks in Sekunden
 
 # Schwellwerte System
-CPU_THRESHOLD=2        # in Prozent 80
+CPU_THRESHOLD=80        # in Prozent 80
 RAM_THRESHOLD=80        # in Prozent 80
-STORAGE_THRESHOLD=80    # in Prozent
+STORAGE_THRESHOLD=30    # in Prozent 60
 INODE_THRESHOLD=80      # in Prozent
 TEMP_THRESHOLD=65       # in Grad Celsius
 SMART_THRESHOLD=10      # Schwellwert Percentage Used
