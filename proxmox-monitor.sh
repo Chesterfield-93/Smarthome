@@ -121,6 +121,7 @@ send_heartbeat_message() {
         send_telegram_message "$heartbeat_message"
         echo "$current_time" > "$last_heartbeat_file"
     fi
+    echo "heartbeat message funktion Ende"
 }
 
 # Funktion zur Echtzeitüberwachung von syslog
