@@ -533,6 +533,7 @@ main() {
     local alerts=""
     
     # Systeminformationen überprüfen und senden
+    echo "before system info"
     send_system_info
 
     # Statusnachricht überprüfen und senden
@@ -596,7 +597,7 @@ main() {
 
 
 # Hello-Nachricht als Zeichen, dass das Script neu gestartet wurde
-echo "send hello"
+echo "send hello1"
 send_hello
 
 # Echtzeitüberwachung von syslog starten
