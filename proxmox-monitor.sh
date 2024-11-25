@@ -172,8 +172,6 @@ check_system_resources() {
         exit 1
     fi
 
-    return
-
     echo "debug"
     # Effektive RAM-Nutzung berechnen
     effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc - 1)
@@ -184,6 +182,8 @@ check_system_resources() {
     if [ "$mem_usage" -gt "$RAM_THRESHOLD" ]; then
         alerts="${alerts}⚠️ RAM-Auslastung: ${mem_usage}%\n"
     fi
+
+    return
     
     # Speicherplatz und Inodes
     while IFS= read -r line; do
