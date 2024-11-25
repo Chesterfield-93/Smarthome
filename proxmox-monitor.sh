@@ -573,11 +573,11 @@ main() {
     alerts+=$(check_cpu_temp)               # getestet
     alerts+=$(check_storage_performance)    # scheint valide
     alerts+=$(check_smart_status)           # getestet
-    alerts+=$(check_zfs_status)             # 
-    #alerts+=$(check_pve_services)
-    #alerts+=$(check_vms_and_containers)
-    #alerts+=$(check_backups)
-    #alerts+=$(check_services)
+    alerts+=$(check_zfs_status)             # getestet
+    alerts+=$(check_pve_services)
+    alerts+=$(check_vms_and_containers)
+    alerts+=$(check_backups)
+    alerts+=$(check_services)
     
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
     if [ ! -z "$alerts" ]; then
