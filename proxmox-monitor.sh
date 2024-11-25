@@ -542,7 +542,7 @@ main() {
     local functions=()
 
     # Starte die Hintergrundprozesse und speichere ihre PIDs und Funktionsnamen
-    check_system_resources & pids+=($!); functions+=("check_system_resources") echo "$!"
+    check_system_resources & pids+=($!); functions+=("check_system_resources")
     #check_cpu_temp & pids+=($!); functions+=("check_cpu_temp")
     #check_smart_status & pids+=($!); functions+=("check_smart_status")
     #check_zfs_status & pids+=($!); functions+=("check_zfs_status")
@@ -553,7 +553,7 @@ main() {
     #check_services & pids+=($!); functions+=("check_services")
 
     # Warte auf die Hintergrundprozesse mit Timeout
-    timeout $TIMEOUT wait "${pids[@]}"
+    timeout $TIMEOUT bash -c "wait ${pids[@]}"
 
     # Überprüfe, ob das Timeout erreicht wurde und beende noch laufende Prozesse
     for i in "${!pids[@]}"; do
