@@ -153,7 +153,7 @@ check_system_resources() {
     if [ "$cpu_usage" -gt "$CPU_THRESHOLD" ]; then
         alerts="${alerts}⚠️ CPU-Auslastung: ${cpu_usage}%\n"
     fi
-    echo "debug"
+    
     # Gesamt-RAM-Nutzung ermitteln
     total_mem=$(free -m | awk '/^Mem:/ {print $3}')
 
@@ -172,6 +172,7 @@ check_system_resources() {
         exit 1
     fi
 
+    echo "debug"
     # Effektive RAM-Nutzung berechnen
     effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc - 1)
 
