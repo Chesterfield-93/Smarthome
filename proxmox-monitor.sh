@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 # proxmox_local_monitor.sh
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
@@ -556,7 +557,7 @@ main() {
     #check_services & pids+=($!); functions+=("check_services")
 
     # Warte auf die Hintergrundprozesse mit Timeout
-    timeout $TIMEOUT wait
+    timeout $TIMEOUT wait "${pids[@]}"
 
     # Überprüfe, ob das Timeout erreicht wurde und beende noch laufende Prozesse
     for i in "${!pids[@]}"; do
