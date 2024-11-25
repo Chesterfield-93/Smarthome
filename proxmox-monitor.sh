@@ -71,6 +71,10 @@ send_system_info() {
       fi
     done
 
+    # Informationen über die CPU-Temp
+    temp=$(( $(cat /sys/class/hwmon/hwmon5/temp1_input) / 1000))
+    system_info="${system_info}CPU-Temp (HI): ${temp}\\n"
+
     # Informationen über die RAM-Auslastung
     # Gesamt-RAM-Nutzung ermitteln
     total_mem=$(free -m | awk '/^Mem:/ {print $3}')
@@ -565,9 +569,9 @@ main() {
     #done
 
     # Alerts sammeln
-    alerts+=$(check_system_resources)
-    alerts+=$(check_cpu_temp)
-    #alerts+=$(check_storage_performance)
+    alerts+=$(check_system_resources)       # getestet
+    alerts+=$(check_cpu_temp)               # getestet
+    alerts+=$(check_storage_performance)    
     #alerts+=$(check_smart_status)
     #alerts+=$(check_zfs_status)
     #alerts+=$(check_pve_services)
