@@ -596,7 +596,7 @@ main() {
 
 
 # Hello-Nachricht als Zeichen, dass das Script neu gestartet wurde
-log "send hello"
+echo "send hello"
 send_hello
 
 # Echtzeitüberwachung von syslog starten
