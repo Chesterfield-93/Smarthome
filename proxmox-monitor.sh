@@ -177,7 +177,6 @@ check_system_resources() {
 
     # RAM-Auslastung
     mem_usage=$(echo "scale=2; ($effective_mem_usage * 100) / $total_mem" | bc)
-    echo $mem_usage
     if [ "$mem_usage" -gt "$RAM_THRESHOLD" ]; then
         alerts="${alerts}⚠️ RAM-Auslastung: ${mem_usage}%\n"
     fi
