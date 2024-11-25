@@ -566,7 +566,7 @@ main() {
     #done
 
     # Alerts sammeln
-    #alerts+=$(check_system_resources)
+    alerts+=$(check_system_resources)
     #alerts+=$(check_cpu_temp)
     #alerts+=$(check_smart_status)
     #alerts+=$(check_zfs_status)
