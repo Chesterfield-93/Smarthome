@@ -154,8 +154,6 @@ check_system_resources() {
         alerts="${alerts}⚠️ CPU-Auslastung: ${cpu_usage}%\n"
     fi
 
-    return
-
     # Gesamt-RAM-Nutzung ermitteln
     total_mem=$(free -m | awk '/^Mem:/ {print $3}')
 
@@ -173,6 +171,8 @@ check_system_resources() {
         echo "Unbekannte Einheit: $zfs_arc_unit"
         exit 1
     fi
+
+    return
 
     echo "debug"
     # Effektive RAM-Nutzung berechnen
