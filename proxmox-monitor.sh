@@ -149,7 +149,7 @@ check_system_resources() {
     
     # CPU-Auslastung
     local cpu_usage
-    cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d. -f1)
+    cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2 + $4}' | cut -d. -f1)
     if [ "$cpu_usage" -gt "$CPU_THRESHOLD" ]; then
         alerts="${alerts}⚠️ CPU-Auslastung: ${cpu_usage}%\n"
     fi
