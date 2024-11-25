@@ -542,6 +542,7 @@ main() {
     local functions=()
 
     # Starte die Hintergrundprozesse und speichere ihre PIDs und Funktionsnamen
+    echo "run_csr"
     check_system_resources & pids+=($!); functions+=("check_system_resources")
     #check_cpu_temp & pids+=($!); functions+=("check_cpu_temp")
     #check_smart_status & pids+=($!); functions+=("check_smart_status")
