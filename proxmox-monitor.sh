@@ -3,7 +3,7 @@
 # proxmox_local_monitor.sh
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
 
-SCRIPT_VERSION="0.13"
+SCRIPT_VERSION="0.14"
 
 # Konfigurationsvariablen
 # Laden der parameters Datei
@@ -533,19 +533,15 @@ main() {
     local alerts=""
     
     # Systeminformationen überprüfen und senden
-    echo "before system info"
     send_system_info
 
     # Statusnachricht überprüfen und senden
-    echo "before heartbeat"
     send_heartbeat_message
-    echo "after heartbeat"
-
+    
     local pids=()
     local functions=()
 
     # Starte die Hintergrundprozesse und speichere ihre PIDs und Funktionsnamen
-    echo "run_csr"
     check_system_resources & pids+=($!); functions+=("check_system_resources")
     #check_cpu_temp & pids+=($!); functions+=("check_cpu_temp")
     #check_smart_status & pids+=($!); functions+=("check_smart_status")
