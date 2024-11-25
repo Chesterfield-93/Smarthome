@@ -12,7 +12,7 @@ STORAGE_THRESHOLD=60    # in Prozent 60
 INODE_THRESHOLD=60      # in Prozent 60
 TEMP_THRESHOLD=65       # in Grad Celsius 65
 SMART_THRESHOLD=10      # Schwellwert Percentage Used
-ZFS_SCRUB_DAYS=30       # Maximales Alter des letzten Scrubs
+ZFS_SCRUB_DAYS=5       # Maximales Alter des letzten Scrubs 10
 MAX_BACKUP_AGE_HOURS=26     # Maximales Alter des letzten Backups
 
 # Schwellwerte VMs

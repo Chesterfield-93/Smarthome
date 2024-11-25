@@ -294,7 +294,7 @@ check_zfs_status() {
         # Scrub-Alter prüfen
         for pool in $(zpool list -H -o name); do
             local scrub_age
-            scrub_age=$(zpool status "$pool" | grep "scan" | grep -oP "(?<=scrub on )[^)]+")
+            scrub_age=$(zpool status "$pool" | grep "scan" | grep -oP "(?<=errors on ).*")
             if [ ! -z "$scrub_age" ]; then
                 local days_since_scrub
                 days_since_scrub=$(( ( $(date +%s) - $(date -d "$scrub_age" +%s) ) / 86400 ))
@@ -571,9 +571,9 @@ main() {
     # Alerts sammeln
     alerts+=$(check_system_resources)       # getestet
     alerts+=$(check_cpu_temp)               # getestet
-    alerts+=$(check_storage_performance)    
-    #alerts+=$(check_smart_status)
-    #alerts+=$(check_zfs_status)
+    alerts+=$(check_storage_performance)    # scheint valide
+    alerts+=$(check_smart_status)           # getestet
+    alerts+=$(check_zfs_status)             # 
     #alerts+=$(check_pve_services)
     #alerts+=$(check_vms_and_containers)
     #alerts+=$(check_backups)
