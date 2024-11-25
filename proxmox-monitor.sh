@@ -173,7 +173,7 @@ check_system_resources() {
     fi
 
     # Effektive RAM-Nutzung berechnen
-    effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc - 1)
+    effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc)
 
     return
 
