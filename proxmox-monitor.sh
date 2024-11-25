@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 
 # proxmox_local_monitor.sh
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
@@ -597,6 +596,7 @@ main() {
 
 
 # Hello-Nachricht als Zeichen, dass das Script neu gestartet wurde
+echo "send hello"
 send_hello
 
 # Echtzeitüberwachung von syslog starten
