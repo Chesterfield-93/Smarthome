@@ -157,7 +157,6 @@ check_system_resources() {
     # Gesamt-RAM-Nutzung ermitteln
     total_mem=$(free -m | awk '/^Mem:/ {print $3}')
 
-    echo "debug"
     # Von ZFS belegten Speicher ermitteln und in MiB umrechnen
     zfs_arc=$(arc_summary | grep "ARC size" | awk '{print $6, $7}')
     zfs_arc_value=$(echo $zfs_arc | awk '{print $1}')
@@ -173,6 +172,7 @@ check_system_resources() {
         exit 1
     fi
 
+    echo "debug"
     # Effektive RAM-Nutzung berechnen
     effective_mem_usage=$(echo "scale=0; $total_mem - $zfs_arc_mb" | bc - 1)
 
