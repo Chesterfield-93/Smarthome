@@ -3,7 +3,7 @@
 # proxmox_local_monitor.sh
 # Erweitertes Monitoring-Script für lokale Proxmox-Überwachung inkl. VMs und Dienste
 
-SCRIPT_VERSION="0.14"
+SCRIPT_VERSION="0.15"
 
 # Konfigurationsvariablen
 # Laden der parameters Datei
