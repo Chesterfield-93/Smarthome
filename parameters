@@ -1,7 +1,7 @@
 # Konfigurationsvariablen
 HOSTNAME=$(hostname)
 SLEEP_INTERVAL=120      # Script-Zyklus in Sekunden
-STATUS_INTERVAL=3600 # Info-Zyklus in Stunden * 3600
+STATUS_INTERVAL=86400 # Info-Zyklus in Stunden * 3600
 SYSTEM_INFO_INTERVAL=86400 # Info-Zyklus in Tagen * 86400
 TIMEOUT=10 # Timeout für Hintergrundchecks in Sekunden
 

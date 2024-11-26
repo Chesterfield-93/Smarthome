@@ -308,7 +308,7 @@ check_zfs_status() {
 }
 
 # Funktion zum Prüfen der Proxmox-Dienste
-check_pve_services() {
+check_services() {
     local alerts=""
     local services=(
         "pve-cluster:Cluster Service"
@@ -518,19 +518,6 @@ check_backups() {
     echo -e "$alerts"
 }
 
-# Dienste-Status prüfen
-check_services() {
-    local alerts=""
-    local services=("pvedaemon" "pveproxy" "pvestatd" "pvescheduler")
-    
-    for service in "${services[@]}"; do
-        if ! systemctl is-active --quiet "$service"; then
-            alerts="${alerts}⚠️ Service ${service} ist nicht aktiv\n"
-        fi
-    done
-    echo "$alerts"
-}
-
 # Hauptfunktion
 main() {
     local alerts=""
@@ -550,10 +537,9 @@ main() {
     alerts+=$(check_storage_performance)    # scheint valide
     alerts+=$(check_smart_status)           # getestet
     alerts+=$(check_zfs_status)             # getestet
-    alerts+=$(check_pve_services)           # 
-    alerts+=$(check_vms_and_containers)
-    alerts+=$(check_backups)
-    alerts+=$(check_services)
+    alerts+=$(check_services)           # scheint valide
+    alerts+=$(check_vms_and_containers)     # getestet
+    alerts+=$(check_backups)                # scheint valide
     
     # Wenn Alerts vorhanden sind und sich seit dem letzten Lauf geändert haben
     if [ ! -z "$alerts" ]; then
