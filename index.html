@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Emoji Click Effect</title>
     <style>
         body {
@@ -10,28 +10,46 @@
             overflow: hidden;
             background-color: #f0f0f0;
             position: relative;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         .emoji {
             position: absolute;
             font-size: 2rem;
             pointer-events: none;
+            transition: opacity 1s;
         }
     </style>
 </head>
 <body>
 <script>
-    const emojis = ['😊', '😂', '😍', '😎', '🥳', '🤩', '👏', '🙌', '👍', '🎉'];
+    const emojis = ['😊', '😂', '😍', '😎', '🥳', '🤩', '👏', '🙌', '👍', '🎉', '🍌'];
     const gravity = 0.5;
     const friction = 0.95;
-    const bounceFactor = -0.7;
+    const initialBounceFactor = -0.8;
+    const bounceDecay = 1.03; // Faktor für die Abnahme der Sprungkraft
     const emojiElements = [];
+	const emojiLifetime = 15000
 
-    document.addEventListener('click', (event) => {
+    function handleInteraction(event) {
+        event.preventDefault();
+        const x = event.type.includes('touch') ? 
+            event.touches[0].clientX : 
+            event.clientX;
+        const y = event.type.includes('touch') ? 
+            event.touches[0].clientY : 
+            event.clientY;
+
         const count = Math.floor(Math.random() * 10);
         for (let i = 0; i < count; i++) {
-            createEmoji(event.clientX, event.clientY);
+            createEmoji(x, y);
         }
-    });
+    }
+
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('touchstart', handleInteraction, { passive: false });
 
     function createEmoji(x, y) {
         const emojiElement = document.createElement('div');
@@ -44,10 +62,36 @@
         let velocityX = (Math.random() - 0.5) * 10;
         let velocityY = -Math.random() * 10;
         let scale = Math.random() * 0.5 + 0.5;
+        let bounceCount = 0;
+        let currentBounceFactor = initialBounceFactor;
         emojiElement.style.transform = `scale(${scale})`;
 
-        const emojiData = { element: emojiElement, velocityX, velocityY, x, y, scale };
+        const emojiData = { 
+            element: emojiElement, 
+            velocityX, 
+            velocityY, 
+            x, 
+            y, 
+            scale,
+            bounceCount,
+            currentBounceFactor,
+            createdAt: Date.now()
+        };
         emojiElements.push(emojiData);
+
+        // Timer für das Ausblenden nach 10 Sekunden
+        setTimeout(() => {
+            emojiElement.style.opacity = '0';
+            setTimeout(() => {
+                if (document.body.contains(emojiElement)) {
+                    document.body.removeChild(emojiElement);
+                    const index = emojiElements.indexOf(emojiData);
+                    if (index > -1) {
+                        emojiElements.splice(index, 1);
+                    }
+                }
+            }, emojiLifetime); // Warte auf die Fade-Animation
+        }, emojiLifetime);
 
         function animate() {
             updatePosition(emojiData);
@@ -58,11 +102,10 @@
             emojiElement.style.top = `${emojiData.y}px`;
 
             if (Math.abs(emojiData.velocityX) < 0.1 && Math.abs(emojiData.velocityY) < 0.1 && emojiData.y > window.innerHeight) {
-                document.body.removeChild(emojiElement);
-                emojiElements.splice(emojiElements.indexOf(emojiData), 1);
-            } else {
-                requestAnimationFrame(animate);
+                // Das Element wird jetzt durch den Timer entfernt
+                return;
             }
+            requestAnimationFrame(animate);
         }
 
         animate();
@@ -79,7 +122,7 @@
                 const dx = other.x - emoji.x;
                 const dy = other.y - emoji.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                const minDistance = (emoji.scale + other.scale) * 16; // Assuming font-size: 2rem
+                const minDistance = (emoji.scale + other.scale) * 16;
 
                 if (distance < minDistance) {
                     const angle = Math.atan2(dy, dx);
@@ -121,19 +164,20 @@
         emoji.velocityX *= friction;
         emoji.velocityY *= friction;
 
-        // Check for collision with bottom boundary
         if (emoji.y + emoji.element.offsetHeight >= window.innerHeight) {
             emoji.y = window.innerHeight - emoji.element.offsetHeight;
-            emoji.velocityY *= bounceFactor;
+            emoji.velocityY *= emoji.currentBounceFactor;
+            emoji.bounceCount++;
+            // Reduziere die Sprungkraft mit jedem Aufprall
+            emoji.currentBounceFactor *= bounceDecay;
         }
 
-        // Check for collision with left and right boundaries
         if (emoji.x <= 0) {
             emoji.x = 0;
-            emoji.velocityX *= bounceFactor;
+            emoji.velocityX *= emoji.currentBounceFactor;
         } else if (emoji.x + emoji.element.offsetWidth >= window.innerWidth) {
             emoji.x = window.innerWidth - emoji.element.offsetWidth;
-            emoji.velocityX *= bounceFactor;
+            emoji.velocityX *= emoji.currentBounceFactor;
         }
     }
 </script>
