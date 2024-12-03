@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtuelles Feuerwerk</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+
+        #firework-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px; /* Kleinere Partikel */
+            height: 3px;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .trail {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background-color: yellow;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="firework-container"></div>
+    <script>
+        document.addEventListener('click', createFirework);
+        document.addEventListener('mousemove', createTrail);
+
+        function createFirework(event) {
+            const container = document.getElementById('firework-container');
+            const x = event.clientX;
+            const y = event.clientY;
+            const particles = 50; // Mehr Partikel für ein beeindruckenderes Feuerwerk
+            const maxSize = Math.min(window.innerWidth, window.innerHeight) / 100; // Kleinere Partikelgröße
+            const maxRadius = Math.min(window.innerWidth, window.innerHeight) / 2; // Dynamischer Radius
+
+            for (let i = 0; i < particles; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.backgroundColor = getRandomColor(); // Zufällige Farbe
+                particle.style.width = `${maxSize}px`;
+                particle.style.height = `${maxSize}px`;
+                container.appendChild(particle);
+                animateParticle(particle, x, y, maxRadius);
+            }
+        }
+
+        function animateParticle(particle, x, y, maxRadius) {
+            const angle = Math.random() * 2 * Math.PI;
+            const radius = Math.random() * maxRadius; // Größerer Radius für mehr Verteilung
+            const targetX = x + radius * Math.cos(angle);
+            const targetY = y + radius * Math.sin(angle);
+            const duration = Math.random() * 2000 + 1000; // Längere Dauer
+
+            particle.style.left = `${x}px`;
+            particle.style.top = `${y}px`;
+            particle.style.opacity = 1;
+
+            setTimeout(() => {
+                particle.style.transition = `all ${duration}ms ease-out`;
+                particle.style.left = `${targetX}px`;
+                particle.style.top = `${targetY}px`;
+                particle.style.opacity = 0;
+            }, 10);
+
+            setTimeout(() => {
+                particle.remove();
+            }, duration + 10);
+        }
+
+        function createTrail(event) {
+            const container = document.getElementById('firework-container');
+            const x = event.clientX;
+            const y = event.clientY;
+            const trail = document.createElement('div');
+            trail.className = 'trail';
+            trail.style.left = `${x}px`;
+            trail.style.top = `${y}px`;
+            container.appendChild(trail);
+
+            setTimeout(() => {
+                trail.style.transition = 'opacity 500ms ease-out';
+                trail.style.opacity = 0;
+            }, 500);
+
+            setTimeout(() => {
+                trail.remove();
+            }, 3000);
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+    </script>
+</body>
+</html>
