@@ -15,11 +15,8 @@
             -webkit-user-select: none;
             user-select: none;
         }
-        .emoji {
-            position: absolute;
-            font-size: 2rem;
-            pointer-events: none;
-            transition: opacity 1s;
+        #canvas {
+            display: block;
         }
         #deleteButton {
             position: fixed;
@@ -30,95 +27,104 @@
             color: white;
             border: none;
             cursor: pointer;
+            z-index: 1000; /* Ensure the button is on top */
+        }
+        #emojiCounter {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            padding: 10px 20px;
+            background-color: blue;
+            color: white;
+            border: none;
+            z-index: 1000; /* Ensure the counter is on top */
         }
     </style>
 </head>
 <body>
     <button id="deleteButton">Alle Emojis löschen</button>
+    <div id="emojiCounter">Emojis: 0</div>
+    <canvas id="canvas"></canvas>
     <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
         const emojis = ['😊', '😂', '😍', '😎', '🥳', '🤩', '👏', '🙌', '👍', '🎉', '🍌'];
         const gravity = 0.5;
         const friction = 0.95;
         const initialBounceFactor = -0.8;
-        const bounceDecay = 0.9; // Faktor für die Abnahme der Sprungkraft
+        const bounceDecay = 0.9;
         const emojiElements = [];
         const emojiLifetime = 20000;
 
-        function handleInteraction(event) {
-            event.preventDefault();
-            const x = event.type.includes('touch') ? 
-                event.touches[0].clientX : 
-                event.clientX;
-            const y = event.type.includes('touch') ? 
-                event.touches[0].clientY : 
-                event.clientY;
+        const gridSize = 100; // Größe jeder Rasterzelle
+        let grid = [];
 
-            const count = Math.floor(Math.random() * 10);
-            for (let i = 0; i < count; i++) {
-                createEmoji(x, y);
+        class Emoji {
+            constructor(x, y, text) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.velocityX = (Math.random() - 0.5) * 10;
+                this.velocityY = -Math.random() * 10;
+                this.scale = Math.random() * 0.5 + 0.5;
+                this.bounceCount = 0;
+                this.currentBounceFactor = initialBounceFactor;
+                this.createdAt = Date.now();
             }
-        }
 
-        document.addEventListener('click', handleInteraction);
-        document.addEventListener('touchstart', handleInteraction, { passive: false });
+            draw(ctx) {
+                ctx.font = `${this.scale * 32}px Arial`;
+                ctx.fillText(this.text, this.x, this.y);
+            }
 
-        function createEmoji(x, y) {
-            const emojiElement = document.createElement('div');
-            emojiElement.classList.add('emoji');
-            emojiElement.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-            emojiElement.style.left = `${x}px`;
-            emojiElement.style.top = `${y}px`;
-            document.body.appendChild(emojiElement);
+            update() {
+                this.x += this.velocityX;
+                this.y += this.velocityY;
+                this.velocityY += gravity;
+                this.velocityX *= friction;
+                this.velocityY *= friction;
 
-            let velocityX = (Math.random() - 0.5) * 10;
-            let velocityY = -Math.random() * 10;
-            let scale = Math.random() * 0.5 + 0.5;
-            let bounceCount = 0;
-            let currentBounceFactor = initialBounceFactor;
-            emojiElement.style.transform = `scale(${scale})`;
-
-            const emojiData = { 
-                element: emojiElement, 
-                velocityX, 
-                velocityY, 
-                x, 
-                y, 
-                scale,
-                bounceCount,
-                currentBounceFactor,
-                createdAt: Date.now()
-            };
-            emojiElements.push(emojiData);
-
-            function animate() {
-                updatePosition(emojiData);
-                handleCollisions(emojiData);
-                applyGravityAndFriction(emojiData);
-
-                emojiElement.style.left = `${emojiData.x}px`;
-                emojiElement.style.top = `${emojiData.y}px`;
-
-                if (Math.abs(emojiData.velocityX) < 0.1 && Math.abs(emojiData.velocityY) < 0.1 && emojiData.y > window.innerHeight) {
-                    return;
+                if (this.y + this.scale * 32 >= canvas.height) {
+                    this.y = canvas.height - this.scale * 32;
+                    this.velocityY *= this.currentBounceFactor;
+                    this.bounceCount++;
+                    this.currentBounceFactor *= bounceDecay;
                 }
-                requestAnimationFrame(animate);
+
+                if (this.x <= 0) {
+                    this.x = 0;
+                    this.velocityX *= this.currentBounceFactor;
+                } else if (this.x + this.scale * 32 >= canvas.width) {
+                    this.x = canvas.width - this.scale * 32;
+                    this.velocityX *= this.currentBounceFactor;
+                }
             }
 
-            animate();
-        }
+            getBoundingBox() {
+                return {
+                    x: this.x,
+                    y: this.y,
+                    width: this.scale * 32,
+                    height: this.scale * 32
+                };
+            }
 
-        function updatePosition(emoji) {
-            emoji.x += emoji.velocityX;
-            emoji.y += emoji.velocityY;
-        }
+            checkCollision(other) {
+                const box1 = this.getBoundingBox();
+                const box2 = other.getBoundingBox();
 
-        function handleCollisions(emoji) {
-            for (let other of emojiElements) {
-                if (emoji !== other) {
-                    const dx = other.x - emoji.x;
-                    const dy = other.y - emoji.y;
+                if (box1.x < box2.x + box2.width &&
+                    box1.x + box1.width > box2.x &&
+                    box1.y < box2.y + box2.height &&
+                    box1.y + box1.height > box2.y) {
+                    // Kollision erkannt, Geschwindigkeiten anpassen
+                    const dx = other.x - this.x;
+                    const dy = other.y - this.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    const minDistance = (emoji.scale + other.scale) * 16;
+                    const minDistance = (this.scale + other.scale) * 16;
 
                     if (distance < minDistance) {
                         const angle = Math.atan2(dy, dx);
@@ -129,25 +135,25 @@
                         const y1 = 0;
                         const x2 = dx * cosine + dy * sine;
 
-                        const vx1 = emoji.velocityX * cosine + emoji.velocityY * sine;
-                        const vy1 = emoji.velocityX * sine - emoji.velocityY * cosine;
+                        const vx1 = this.velocityX * cosine + this.velocityY * sine;
+                        const vy1 = this.velocityX * sine - this.velocityY * cosine;
                         const vx2 = other.velocityX * cosine + other.velocityY * sine;
                         const vy2 = other.velocityX * sine - other.velocityY * cosine;
 
-                        const m1 = emoji.scale;
+                        const m1 = this.scale;
                         const m2 = other.scale;
 
                         const vx1Final = ((m1 - m2) * vx1 + 2 * m2 * vx2) / (m1 + m2);
                         const vx2Final = (2 * m1 * vx1 + (m2 - m1) * vx2) / (m1 + m2);
 
-                        emoji.velocityX = vx1Final * cosine - vy1 * sine;
-                        emoji.velocityY = vx1Final * sine + vy1 * cosine;
+                        this.velocityX = vx1Final * cosine - vy1 * sine;
+                        this.velocityY = vx1Final * sine + vy1 * cosine;
                         other.velocityX = vx2Final * cosine - vy2 * sine;
                         other.velocityY = vx2Final * sine + vy2 * cosine;
 
                         const overlap = 0.5 * (minDistance - distance);
-                        emoji.x -= overlap * cosine;
-                        emoji.y -= overlap * sine;
+                        this.x -= overlap * cosine;
+                        this.y -= overlap * sine;
                         other.x += overlap * cosine;
                         other.y += overlap * sine;
                     }
@@ -155,34 +161,102 @@
             }
         }
 
-        function applyGravityAndFriction(emoji) {
-            emoji.velocityY += gravity;
-            emoji.velocityX *= friction;
-            emoji.velocityY *= friction;
+        function handleInteraction(event) {
+            if (event.target.id === 'deleteButton') return;
 
-            if (emoji.y + emoji.element.offsetHeight >= window.innerHeight) {
-                emoji.y = window.innerHeight - emoji.element.offsetHeight;
-                emoji.velocityY *= emoji.currentBounceFactor;
-                emoji.bounceCount++;
-                emoji.currentBounceFactor *= bounceDecay;
+            event.preventDefault();
+            const x = event.type.includes('touch') ? event.touches[0].clientX : event.clientX;
+            const y = event.type.includes('touch') ? event.touches[0].clientY : event.clientY;
+
+            const count = Math.floor(Math.random() * 10);
+            for (let i = 0; i < count; i++) {
+                const emoji = new Emoji(x, y, emojis[Math.floor(Math.random() * emojis.length)]);
+                emojiElements.push(emoji);
             }
 
-            if (emoji.x <= 0) {
-                emoji.x = 0;
-                emoji.velocityX *= emoji.currentBounceFactor;
-            } else if (emoji.x + emoji.element.offsetWidth >= window.innerWidth) {
-                emoji.x = window.innerWidth - emoji.element.offsetWidth;
-                emoji.velocityX *= emoji.currentBounceFactor;
+            // Aktualisiere den Emoji-Zähler
+            document.getElementById('emojiCounter').textContent = `Emojis: ${emojiElements.length}`;
+        }
+
+        document.addEventListener('click', handleInteraction);
+        document.addEventListener('touchstart', handleInteraction, { passive: false });
+
+        function updateGrid() {
+            grid = [];
+            for (let i = 0; i < Math.ceil(canvas.width / gridSize); i++) {
+                grid[i] = [];
+                for (let j = 0; j < Math.ceil(canvas.height / gridSize); j++) {
+                    grid[i][j] = [];
+                }
             }
+
+            emojiElements.forEach(emoji => {
+                const colStart = Math.floor(emoji.x / gridSize);
+                const colEnd = Math.floor((emoji.x + emoji.scale * 32) / gridSize);
+                const rowStart = Math.floor(emoji.y / gridSize);
+                const rowEnd = Math.floor((emoji.y + emoji.scale * 32) / gridSize);
+
+                for (let col = colStart; col <= colEnd; col++) {
+                    for (let row = rowStart; row <= rowEnd; row++) {
+                        if (grid[col] && grid[col][row]) {
+                            grid[col][row].push(emoji);
+                        }
+                    }
+                }
+            });
+        }
+
+        function checkCollisions() {
+            for (let col = 0; col < grid.length; col++) {
+                for (let row = 0; row < grid[col].length; row++) {
+                    const cell = grid[col][row];
+                    for (let i = 0; i < cell.length; i++) {
+                        const emoji = cell[i];
+                        for (let j = i + 1; j < cell.length; j++) {
+                            const other = cell[j];
+                            emoji.checkCollision(other);
+                        }
+                        // Überprüfe benachbarte Zellen
+                        for (let dCol = -1; dCol <= 1; dCol++) {
+                            for (let dRow = -1; dRow <= 1; dRow++) {
+                                if (dCol === 0 && dRow === 0) continue;
+                                const neighborCol = col + dCol;
+                                const neighborRow = row + dRow;
+                                if (grid[neighborCol] && grid[neighborCol][neighborRow]) {
+                                    const neighborCell = grid[neighborCol][neighborRow];
+                                    for (let k = 0; k < neighborCell.length; k++) {
+                                        const neighborEmoji = neighborCell[k];
+                                        emoji.checkCollision(neighborEmoji);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            updateGrid();
+            checkCollisions();
+
+            emojiElements.forEach(emoji => {
+                emoji.update();
+                emoji.draw(ctx);
+            });
+
+            requestAnimationFrame(animate);
         }
 
         const deleteButton = document.getElementById('deleteButton');
         deleteButton.addEventListener('click', () => {
-            emojiElements.forEach(emoji => {
-                document.body.removeChild(emoji.element);
-            });
             emojiElements.length = 0;
+            document.getElementById('emojiCounter').textContent = 'Emojis: 0';
         });
+
+        animate();
     </script>
 </body>
 </html>
